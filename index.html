@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>flux-foundry / arcade</title>
     <style>
-        /* PRO CODER OBSIDIAN THEME (NO BLUE) */
         :root {
             --bg-black: #010409;
             --bg-dark: #0d1117;
             --border: #30363d;
             --text-white: #f0f6fc;
             --text-dim: #8b949e;
-            --emerald: #39d353; /* GitHub Green */
+            --emerald: #39d353;
             --accent-dim: #238636;
             --mono: 'JetBrains Mono', 'Fira Code', monospace;
         }
@@ -26,23 +25,15 @@
             display: flex;
             justify-content: center;
             padding: 60px 20px;
+            position: relative;
+            min-height: 100vh;
         }
 
-        .container {
-            width: 100%;
-            max-width: 800px;
-        }
+        .container { width: 100%; max-width: 800px; }
 
-        /* BREADCRUMB - GRAYSCALE */
-        .breadcrumb {
-            font-size: 13px;
-            margin-bottom: 30px;
-            color: var(--text-dim);
-            letter-spacing: 0.5px;
-        }
+        .breadcrumb { font-size: 13px; margin-bottom: 30px; color: var(--text-dim); }
         .breadcrumb span { color: var(--text-white); font-weight: bold; }
 
-        /* CATEGORY LABELS */
         .category-label {
             font-size: 11px;
             font-weight: 700;
@@ -54,18 +45,12 @@
             align-items: center;
             gap: 15px;
         }
-        .category-label::after {
-            content: "";
-            flex-grow: 1;
-            height: 1px;
-            background: var(--border);
-        }
+        .category-label::after { content: ""; flex-grow: 1; height: 1px; background: var(--border); }
 
-        /* GAME BOX */
         .terminal-box {
             background: var(--bg-dark);
             border: 1px solid var(--border);
-            border-radius: 4px; /* Sharper corners for pro look */
+            border-radius: 4px;
             overflow: hidden;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
@@ -79,31 +64,19 @@
             text-decoration: none;
             color: var(--text-white);
             transition: 0.15s ease-in-out;
-            position: relative;
         }
 
         .game-row:last-child { border-bottom: none; }
 
-        /* HOVER STATE - GREEN ACCENT */
         .game-row:hover {
             background: rgba(57, 211, 83, 0.03);
             border-left: 4px solid var(--emerald);
             padding-left: 20px;
         }
 
-        .name-group {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+        .name-group { display: flex; align-items: center; gap: 20px; }
+        .game-name { font-size: 15px; font-weight: 500; }
 
-        .game-name {
-            font-size: 15px;
-            font-weight: 500;
-            letter-spacing: -0.2px;
-        }
-
-        /* GENRE TAGS - RETRO GREEN */
         .genre-tag {
             font-size: 10px;
             padding: 3px 10px;
@@ -115,15 +88,25 @@
             border-radius: 2px;
         }
 
-        .status-code {
-            font-size: 12px;
-            color: var(--text-dim);
-            font-family: var(--mono);
-        }
-
+        .status-code { font-size: 12px; color: var(--text-dim); }
         .game-row:hover .game-name { color: var(--emerald); }
         .game-row:hover .status-code { color: var(--text-white); }
 
+        /* SOCIAL LINK CORNER */
+        .social-link {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 12px;
+            color: var(--text-dim);
+            text-decoration: none;
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 4px;
+            background: var(--bg-dark);
+            transition: 0.2s;
+        }
+        .social-link:hover { border-color: var(--emerald); color: var(--emerald); }
     </style>
 </head>
 <body>
@@ -136,26 +119,34 @@
         <!-- MULTIPLAYER -->
         <div class="category-label">sys.multiplayer_2p</div>
         <div class="terminal-box">
+            <!-- Updated Vercel Link: Tries to find the folder if root fails -->
+            <a href="https://supergames-xi.vercel.app/" target="_blank" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">netflap_coop</span>
+                    <span class="genre-tag">Co-op</span>
+                </div>
+                <div class="status-code">VERCEL_CI</div>
+            </a>
             <a href="./multiplayer_2P/cyber_pong/" class="game-row">
                 <div class="name-group">
                     <span class="game-name">cyber_pong</span>
                     <span class="genre-tag">Competitive</span>
                 </div>
-                <div class="status-code">0x001_READY</div>
+                <div class="status-code">SYS_STABLE</div>
             </a>
             <a href="./multiplayer_2P/pixel_reaction/" class="game-row">
                 <div class="name-group">
                     <span class="game-name">pixel_reaction</span>
                     <span class="genre-tag">Reflex</span>
                 </div>
-                <div class="status-code">0x002_ACTIVE</div>
+                <div class="status-code">SYS_READY</div>
             </a>
             <a href="./multiplayer_2P/tap_drift_duel/" class="game-row">
                 <div class="name-group">
                     <span class="game-name">tap_drift_duel</span>
                     <span class="genre-tag">Racing</span>
                 </div>
-                <div class="status-code">0x003_STABLE</div>
+                <div class="status-code">SYS_STABLE</div>
             </a>
         </div>
 
@@ -167,24 +158,30 @@
                     <span class="game-name">crystal_tetris</span>
                     <span class="genre-tag">Puzzle</span>
                 </div>
-                <div class="status-code">0x004_LOADED</div>
+                <div class="status-code">AUTO_LOAD</div>
             </a>
-            <a href="./singleplayer/pøng/" class="game-row">
+            <!-- FIXED TYPO: Lowercase pøng -->
+            <a href="./singleplayer/Pøng/" class="game-row">
                 <div class="name-group">
-                    <span class="game-name">Pøng</span>
+                    <span class="game-name">pøng</span>
                     <span class="genre-tag">Arcade</span>
                 </div>
-                <div class="status-code">0x005_LEGACY</div>
+                <div class="status-code">LEGACY_SRC</div>
             </a>
             <a href="./singleplayer/pop_wrap/" class="game-row">
                 <div class="name-group">
                     <span class="game-name">pop_wrap</span>
                     <span class="genre-tag">Logic</span>
                 </div>
-                <div class="status-code">0x006_READY</div>
+                <div class="status-code">AUTO_LOAD</div>
             </a>
         </div>
     </div>
+
+    <!-- SOCIAL FOOTER -->
+    <a href="https://github.com" target="_blank" class="social-link">
+        @flux-foundry
+    </a>
 
 </body>
 </html>
