@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tap-Drift Duel: Retro</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #303050; --ui-bg: #101010; --ui-accent: #f0a000;
+            --text-main: #f0f0f0; --text-muted: #a0a0a0;
+            --p1-color: #3050f0; --p2-color: #f03030; --rock-color: #705030;
+            --pixel-border: 4px solid #f0f0f0; --btn-shadow: 4px 4px 0px #000;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; font-family: 'Courier New', Courier, monospace; font-weight: bold; image-rendering: pixelated; }
+        body, html { width: 100%; height: 100%; background-color: #000; overflow: hidden; color: var(--text-main); display: flex; justify-content: center; align-items: center; }
+        
+        #game-container { position: relative; width: 100%; height: 100%; max-width: 600px; max-height: 1000px; background-color: var(--bg-color); overflow: hidden; border: var(--pixel-border); box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .menu-bg { background-image: linear-gradient(45deg, #202040 25%, transparent 25%), linear-gradient(-45deg, #202040 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #202040 75%), linear-gradient(-45deg, transparent 75%, #202040 75%); background-size: 40px 40px; background-position: 0 0, 0 20px, 20px -20px, -20px 0px; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; display: none; image-rendering: pixelated; -ms-interpolation-mode: nearest-neighbor; }
+        
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; background-color: rgba(16, 16, 16, 0.95); }
+        .hidden { display: none !important; }
+        
+        h1 { font-size: 2.5rem; margin-bottom: 2rem; text-transform: uppercase; color: var(--ui-accent); text-shadow: 4px 4px 0px #000; border-bottom: var(--pixel-border); padding-bottom: 10px; }
+        h2 { font-size: 1.5rem; margin-bottom: 1rem; text-transform: uppercase; color: var(--text-muted); }
+        p { margin-bottom: 10px; font-size: 1rem; }
+        
+        button { background: #c0c0c0; color: #000; border: 4px solid #fff; border-right-color: #808080; border-bottom-color: #808080; padding: 12px 20px; font-size: 1.2rem; margin: 8px; cursor: pointer; text-transform: uppercase; font-weight: bold; width: 80%; max-width: 280px; box-shadow: var(--btn-shadow); position: relative; }
+        button:active { top: 2px; left: 2px; box-shadow: 2px 2px 0px #000; border: 4px solid #fff; border-top-color: #808080; border-left-color: #808080; }
+        button.p2-btn { background: var(--p2-color); color: #fff; border-color: #ff8080; border-right-color: #800000; border-bottom-color: #800000; }
+        button.blue-btn { background: #3050f0; color: #fff; border-color: #80a0ff; border-right-color: #000080; border-bottom-color: #000080; }
+        
+        input { padding: 12px; font-size: 1.5rem; text-align: center; border: var(--pixel-border); background: #000; color: var(--ui-accent); margin-bottom: 15px; width: 80%; max-width: 280px; text-transform: uppercase; }
+        .id-display { font-size: 3rem; color: #fff; background: #000; padding: 10px 20px; border: var(--pixel-border); margin: 15px 0; }
+        
+        .settings-row { display: flex; align-items: center; justify-content: space-between; width: 80%; max-width: 280px; margin: 10px 0; background: rgba(0,0,0,0.5); padding: 10px; border: 2px solid var(--text-muted); }
+        .toggle-box { width: 50px; height: 30px; border: 3px solid #fff; background: #808080; cursor: pointer; position: relative; }
+        .toggle-box.on { background: #00c000; }
+        .toggle-box::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #c0c0c0; border: 2px solid #fff; transition: left 0.1s; }
+        .toggle-box.on::after { left: 23px; }
+
+        #game-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; display: flex; flex-direction: column; justify-content: space-between; padding: 10px; background: none; }
+        .top-bar { display: flex; justify-content: space-between; pointer-events: auto; width: 100%; align-items: center; gap: 5px;}
+        .bottom-bar { display: flex; justify-content: center; pointer-events: none; width: 100%; } /* CENTERED */
+        
+        .ui-card { background: rgba(0,0,0,0.7); border: 2px solid #fff; padding: 8px; color: #fff; font-size: 1rem; flex-grow: 1; text-align: center; }
+        .icon-btn { width: 44px; height: 44px; padding: 0; font-size: 1rem; display: flex; justify-content: center; align-items: center; margin: 0; pointer-events: auto; }
+        #btn-ff { width: 70px; height: 70px; font-size: 1.8rem; background: #f0f000; border-color: #ffff80; border-right-color: #808000; border-bottom-color: #808000; color: #000; margin-bottom: 20px;}
+
+        #countdown { position: absolute; font-size: 5rem; color: #fff; text-shadow: 4px 4px 0px #000; z-index: 20; }
+        #message-banner { position: absolute; top: 35%; width: 100%; background: rgba(0,0,0,0.8); border-top: var(--pixel-border); border-bottom: var(--pixel-border); color: var(--ui-accent); padding: 15px; text-align: center; font-size: 2rem; text-transform: uppercase; z-index: 20; }
+        #controls-hint { position: absolute; bottom: 120px; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; opacity: 0.5; pointer-events: none; z-index: 4; color: #fff; font-size: 1.5rem; text-align: center;}
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="controls-hint" class="hidden">
+        <div>&larr; TAP/SWIPE</div>
+        <div>TAP/SWIPE &rarr;</div>
+    </div>
+
+    <div id="main-menu" class="screen menu-bg">
+        <h1>TAP-DRIFT DUEL</h1>
+        <button id="btn-host-menu">Host Game</button>
+        <button id="btn-join-menu">Join Game</button>
+        <button id="btn-settings-menu" style="margin-top: 30px; width: 60%; font-size: 1rem;">Options</button>
+    </div>
+
+    <div id="settings-menu" class="screen hidden menu-bg">
+        <h2>OPTIONS</h2>
+        <div class="settings-row"><span>SOUND SFX</span><div id="toggle-sfx" class="toggle-box on"></div></div>
+        <div class="settings-row"><span>MUSIC BGM</span><div id="toggle-bgm" class="toggle-box on"></div></div>
+        <button id="btn-close-settings" style="margin-top: 20px;">Accept</button>
+    </div>
+
+    <div id="lobby-host" class="screen hidden menu-bg">
+        <h2>WAITING FOR P2</h2>
+        <p>Communcation Link ID:</p>
+        <div id="host-id-display" class="id-display">----</div>
+        <button id="btn-cancel-host" class="p2-btn">Abort</button>
+    </div>
+
+    <div id="lobby-join" class="screen hidden menu-bg">
+        <h2>ENTER LINK ID</h2>
+        <input type="text" id="join-id-input" placeholder="0000" maxlength="4">
+        <button id="btn-connect">Establish Link</button>
+        <button id="btn-cancel-join" class="p2-btn">Back</button>
+    </div>
+
+    <div id="game-ui" class="hidden">
+        <div class="top-bar">
+            <button id="btn-exit" class="icon-btn p2-btn">X</button>
+            <button id="btn-in-bgm" class="icon-btn blue-btn">MUS</button>
+            <button id="btn-in-sfx" class="icon-btn blue-btn">SFX</button>
+            <div id="score-display" class="ui-card">0</div>
+            <button id="btn-pause" class="icon-btn">||</button>
+        </div>
+        <div class="bottom-bar">
+            <button id="btn-ff" class="icon-btn">&raquo;</button>
+        </div>
+    </div>
+
+    <div id="game-over" class="screen hidden">
+        <h1 id="winner-text">GAME OVER</h1>
+        <h2 id="final-score-text">FINAL SCORE: 0</h2>
+        <p id="rematch-status" style="height: 20px; color: var(--ui-accent); margin-bottom: 10px;"></p>
+        <button id="btn-rematch">Rematch</button>
+        <button id="btn-return" class="p2-btn">Disconnect</button>
+    </div>
+
+    <div id="countdown" class="hidden"></div>
+    <div id="message-banner" class="hidden">PAUSED</div>
+</div>
+
+<script>
+const LOGICAL_W = 240, LOGICAL_H = 400;
+const CAR_W = 24, CAR_H = 40, ROAD_W = 180, LANE_W = ROAD_W / 4;
+const ROAD_X = (LOGICAL_W - ROAD_W) / 2;
+
+const GAME_CONST = {
+    P1_START_X: ROAD_X + LANE_W * 1 + LANE_W/2, P2_START_X: ROAD_X + LANE_W * 2 + LANE_W/2,
+    CAR_Y: 340, BASE_SPEED: 180, SPEED_INC: 1.05, FF_MULTIPLIER: 3,
+    PEER_PREFIX: "TDR_v3_"
+};
+
+const AudioSys = {
+    ctx: null, ffOsc: null, ffGain: null,
+    sfxEnabled: true, bgmEnabled: true, bgmInterval: null, beat: 0,
+    init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+    },
+    t(freq, type, duration, vol, decay = true) {
+        if (!this.ctx || !this.sfxEnabled) return;
+        try {
+            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+            if (decay) gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+    },
+    playClick() { this.t(1000, 'square', 0.05, 0.1); },
+    playCount() { this.t(400, 'square', 0.1, 0.1, false); },
+    playStart() { this.t(800, 'square', 0.4, 0.1, false); },
+    playCrash() {
+        if (!this.ctx || !this.sfxEnabled) return;
+        const bSize = this.ctx.sampleRate * 0.5, b = this.ctx.createBuffer(1, bSize, this.ctx.sampleRate);
+        const data = b.getChannelData(0); for (let i = 0; i < bSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource(), gain = this.ctx.createGain(); noise.buffer = b;
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.5);
+        noise.connect(gain); gain.connect(this.ctx.destination); noise.start();
+    },
+    startFF() {
+        if (!this.ctx || !this.sfxEnabled || this.ffOsc) return;
+        this.ffOsc = this.ctx.createOscillator(); this.ffGain = this.ctx.createGain();
+        this.ffOsc.type = 'sawtooth'; this.ffOsc.frequency.setValueAtTime(100, this.ctx.currentTime);
+        this.ffOsc.frequency.linearRampToValueAtTime(200, this.ctx.currentTime + 2); 
+        this.ffGain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+        this.ffOsc.connect(this.ffGain); this.ffGain.connect(this.ctx.destination); this.ffOsc.start();
+    },
+    stopFF() { if (this.ffOsc) { try { this.ffOsc.stop(); } catch(e){} this.ffOsc = null; this.ffGain = null; } },
+    startBGM() {
+        if(!this.bgmEnabled || this.bgmInterval) return;
+        this.init(); this.beat = 0;
+        const notes = [220, 0, 220, 220, 261.63, 0, 220, 0, 196, 196, 0, 220, 0, 0, 0, 0]; 
+        this.bgmInterval = setInterval(() => {
+            if(!this.bgmEnabled) return;
+            const freq = notes[this.beat % notes.length];
+            if(freq > 0) {
+                try {
+                    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                    osc.type = 'square'; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+                } catch(e){}
+            }
+            this.beat++;
+        }, 150);
+    },
+    stopBGM() { if(this.bgmInterval) { clearInterval(this.bgmInterval); this.bgmInterval = null; } }
+};
+
+let state = {
+    phase: 'MENU', isHost: false, peer: null, conn: null, scale: 1,
+    score: 0, difficultyTimer: 0, currentSpeed: GAME_CONST.BASE_SPEED, isFF: false, lastTime: 0, roadOffset: 0, spawnDist: 0,
+    p1: { x: GAME_CONST.P1_START_X, dir: 0 }, p2: { x: GAME_CONST.P2_START_X, dir: 0 },
+    obstacles: [], roadDecoration: [], p2Input: { x: GAME_CONST.P2_START_X, wantsFF: false },
+    localWantsRematch: false, remoteWantsRematch: false
+};
+
+const canvas = document.getElementById('gameCanvas'), ctx = canvas.getContext('2d');
+ctx.imageRendering = 'pixelated'; ctx.imageSmoothingEnabled = false;
+
+const ui = {
+    screens: { menu: document.getElementById('main-menu'), settings: document.getElementById('settings-menu'), lobbyHost: document.getElementById('lobby-host'), lobbyJoin: document.getElementById('lobby-join'), game: document.getElementById('game-ui'), gameOver: document.getElementById('game-over') },
+    hostId: document.getElementById('host-id-display'), joinInput: document.getElementById('join-id-input'), score: document.getElementById('score-display'), winnerText: document.getElementById('winner-text'), finalScore: document.getElementById('final-score-text'), rematchStatus: document.getElementById('rematch-status'), banner: document.getElementById('message-banner'), count: document.getElementById('countdown'), hints: document.getElementById('controls-hint'), togSfx: document.getElementById('toggle-sfx'), togBgm: document.getElementById('toggle-bgm')
+};
+
+function createPixelSprite(w, h, drawFn) { const spCanvas = document.createElement('canvas'); spCanvas.width = w; spCanvas.height = h; drawFn(spCanvas.getContext('2d')); return spCanvas; }
+function varColor(id) { return getComputedStyle(document.documentElement).getPropertyValue(id).trim(); }
+
+const Sprites = {
+    car: (color1, color2) => createPixelSprite(CAR_W, CAR_H, (c) => {
+        c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(2, 4, CAR_W-2, CAR_H-2);
+        c.fillStyle = color1; c.fillRect(2, 2, CAR_W-4, CAR_H-4); c.fillStyle = color2; c.fillRect(4, 4, CAR_W-8, CAR_H-8);
+        c.fillStyle = '#101010'; c.fillRect(6, 8, CAR_W-12, 10); c.fillRect(6, CAR_H-12, CAR_W-12, 6);
+        c.fillStyle = '#ffff00'; c.fillRect(4, 2, 4, 2); c.fillRect(CAR_W-8, 2, 4, 2);
+        c.fillStyle = '#ff0000'; c.fillRect(4, CAR_H-4, 4, 2); c.fillRect(CAR_W-8, CAR_H-4, 4, 2);
+    }),
+    rock: createPixelSprite(16, 16, (c) => { c.fillStyle = '#404040'; c.fillRect(0,0,16,16); c.fillStyle = varColor('--rock-color'); c.fillRect(2,2,12,12); c.fillStyle = '#fff'; c.fillRect(6,6,4,4); }),
+    banana: createPixelSprite(16, 16, (c) => { c.fillStyle = '#ffcc00'; c.fillRect(4,4,8,8); c.fillStyle = '#ccaa00'; c.fillRect(2,6,4,4); c.fillRect(10,6,4,4); }),
+    bush: createPixelSprite(16, 16, (c) => { c.fillStyle = '#105010'; c.fillRect(0,4,16,12); c.fillStyle = '#209020'; c.fillRect(2,2,12,12); c.fillStyle = '#30c030'; c.fillRect(4,0,8,8); })
+};
+
+let carP1, carP2;
+function initSprites() { carP1 = Sprites.car(varColor('--p1-color'), '#80a0ff'); carP2 = Sprites.car(varColor('--p2-color'), '#ff8080'); }
+function initBackground() { state.roadDecoration = []; for(let y=0; y<LOGICAL_H; y+=40) { state.roadDecoration.push({x: 5, y: y, type:'bush', side: 0}); state.roadDecoration.push({x: 5, y: y+20, type:'bush', side: 1}); } }
+function showScreen(name) { Object.values(ui.screens).forEach(s => s.classList.add('hidden')); ui.screens[name].classList.remove('hidden'); if(name === 'menu' || name === 'settings' || name === 'lobbyHost' || name === 'lobbyJoin') ui.screens[name].classList.add('menu-bg'); }
+function s(val) { return val * state.scale; }
+
+function resize() {
+    initSprites();
+    const container = document.getElementById('game-container'), winW = window.innerWidth, winH = window.innerHeight;
+    let contW = Math.min(winW, 600), contH = Math.min(winH, 1000);
+    const asp = LOGICAL_W / LOGICAL_H; if (contW / contH > asp) contW = contH * asp; else contH = contW / asp;
+    container.style.width = contW + 'px'; container.style.height = contH + 'px';
+    canvas.width = contW; canvas.height = contH; state.scale = contW / LOGICAL_W;
+    const c = canvas.getContext('2d'); c.imageSmoothingEnabled = false; c.imageRendering = 'pixelated';
+}
+window.addEventListener('resize', resize); resize();
+
+let lastPauseTime = 0;
+function requestPause() {
+    if (state.phase !== 'PLAYING' && state.phase !== 'PAUSED') return;
+    if (Date.now() - lastPauseTime < 300) return; 
+    lastPauseTime = Date.now(); AudioSys.playClick();
+    if (state.isHost) togglePauseHost(); else sendNet({type: 'req_pause'});
+}
+function togglePauseHost() {
+    if (!state.isHost) return;
+    if (state.phase === 'PLAYING') { state.phase = 'PAUSED'; setPauseUI(true); sendNet({type: 'srv_state', phase: 'PAUSED'}); } 
+    else if (state.phase === 'PAUSED') { state.phase = 'PLAYING'; setPauseUI(false); sendNet({type: 'srv_state', phase: 'PLAYING'}); state.lastTime = performance.now(); requestAnimationFrame(gameLoop); }
+}
+function setPauseUI(isPaused) { if (isPaused) { ui.banner.innerText = "PAUSED"; ui.banner.classList.remove('hidden'); } else ui.banner.classList.add('hidden'); }
+
+function initPeer(id = null) {
+    AudioSys.init(); if(state.peer) state.peer.destroy();
+    state.peer = new Peer(id ? GAME_CONST.PEER_PREFIX + id : null);
+    state.peer.on('error', (err) => { console.error(err); alert("Network Error: " + err.type); resetToMenu(); });
+}
+function sendNet(data) { if (state.conn && state.conn.open) state.conn.send(data); }
+function handleConnection() {
+    state.conn.on('open', () => startCountdown());
+    state.conn.on('data', (data) => state.isHost ? handleDataAsHost(data) : handleDataAsClient(data));
+    state.conn.on('close', () => { if(state.phase === 'PLAYING' || state.phase === 'PAUSED') endGame("LINK SEVERED"); else { alert("Opponent disconnected"); resetToMenu(); } });
+}
+function handleDataAsHost(data) {
+    if (data.type === 'input') state.p2Input = data;
+    else if (data.type === 'req_pause') togglePauseHost();
+    else if (data.type === 'rematch') { state.remoteWantsRematch = data.wants; checkRematchLogic(); }
+    else if (data.type === 'req_abort') endGame("P2 DISCONNECTED");
+}
+function handleDataAsClient(data) {
+    if (data.type === 'srv_state') {
+        if (data.phase === 'PAUSED') { state.phase = 'PAUSED'; setPauseUI(true); }
+        else if (data.phase === 'PLAYING') { if(state.phase === 'PAUSED') { state.phase = 'PLAYING'; setPauseUI(false); state.lastTime = performance.now(); requestAnimationFrame(gameLoop); } }
+        else if (data.phase === 'GAMEOVER') endGame(data.winner, data.score);
+        else if (data.phase === 'COUNTDOWN') startCountdown();
+    } else if (data.type === 'sync') {
+        state.p1.x = data.p1x; state.obstacles = data.obs; state.score = data.score; state.isFF = data.isFF;
+        state.roadOffset = data.offset; state.roadDecoration = data.deco;
+        if(state.isFF && AudioSys.sfxEnabled && !AudioSys.ffOsc) AudioSys.startFF();
+        if(!state.isFF && AudioSys.ffOsc) AudioSys.stopFF();
+        ui.score.innerText = Math.floor(state.score);
+    } else if (data.type === 'rematch') { state.remoteWantsRematch = data.wants; if(state.remoteWantsRematch) ui.rematchStatus.innerText = "Host wants rematch..."; }
+}
+
+function startCountdown() {
+    showScreen('game'); canvas.style.display = 'block'; resize();
+    ui.hints.classList.remove('hidden'); ui.rematchStatus.innerText = "";
+    state.phase = 'COUNTDOWN'; state.score = 0; state.difficultyTimer = 0; state.currentSpeed = GAME_CONST.BASE_SPEED; state.isFF = false; state.spawnDist = 0;
+    state.obstacles = []; state.p1 = { x: GAME_CONST.P1_START_X, dir: 0 }; state.p2 = { x: GAME_CONST.P2_START_X, dir: 0 };
+    state.localWantsRematch = false; state.remoteWantsRematch = false; initBackground(); AudioSys.startBGM();
+    
+    let count = 3; ui.count.innerText = count; ui.count.classList.remove('hidden');
+    const ctInt = setInterval(() => {
+        count--;
+        if (count > 0) { ui.count.innerText = count; AudioSys.playCount(); } 
+        else if (count === 0) { ui.count.innerText = "GO!"; AudioSys.playStart(); } 
+        else { clearInterval(ctInt); ui.count.classList.add('hidden'); ui.hints.classList.add('hidden'); state.phase = 'PLAYING'; state.lastTime = performance.now(); requestAnimationFrame(gameLoop); }
+    }, 1000); AudioSys.playCount();
+}
+
+function gameLoop(timestamp) {
+    if (state.phase !== 'PLAYING') return;
+    const dt = (timestamp - state.lastTime) / 1000; state.lastTime = timestamp;
+    update(dt); draw();
+    if (state.phase === 'PLAYING') requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+    const moveSpd = 200 * dt, applyMove = (p) => {
+        if(p.dir !== 0) { p.x += p.dir * moveSpd; p.x = Math.max(ROAD_X + CAR_W/2, Math.min(ROAD_X + ROAD_W - CAR_W/2, p.x)); }
+    };
+    if(state.isHost) {
+        applyMove(state.p1); state.p2.x = state.p2Input.x;
+        const wantedFF = (state.localWantsFF || state.p2Input.wantsFF);
+        if(wantedFF && !state.isFF) { state.isFF = true; AudioSys.startFF(); }
+        if(!wantedFF && state.isFF) { state.isFF = false; AudioSys.stopFF(); }
+    } else {
+        applyMove(state.p2); sendNet({ type: 'input', x: state.p2.x, wantsFF: state.localWantsFF });
+    }
+    
+    if(state.isHost) {
+        const scrMult = state.isFF ? GAME_CONST.FF_MULTIPLIER : 1, totalSpd = state.currentSpeed * scrMult, dist = totalSpd * dt;
+        state.score += totalSpd * dt * 0.1; ui.score.innerText = Math.floor(state.score);
+        state.difficultyTimer += dt; if(state.difficultyTimer > 10) { state.difficultyTimer = 0; state.currentSpeed *= GAME_CONST.SPEED_INC; }
+        state.roadOffset = (state.roadOffset + dist) % 40; state.spawnDist += dist;
+        state.roadDecoration.forEach(d => { d.y += dist; if(d.y > LOGICAL_H) d.y = -20; });
+        
+        const spawnInt = LANE_W * 2; // Fair obstacle spawning
+        if (state.spawnDist > spawnInt) {
+            state.spawnDist = 0; const emptyLane = Math.floor(Math.random() * 4);
+            for(let l=0; l<4; l++) {
+                if(l === emptyLane) continue;
+                if(Math.random() < 0.35 * (state.currentSpeed/GAME_CONST.BASE_SPEED)) {
+                    const sz = LANE_W - 4;
+                    state.obstacles.push({ x: ROAD_X + l * LANE_W + 2, y: -sz, w: sz, h: sz, type: Math.random() < 0.3 ? 'banana' : 'rock' });
+                }
+            }
+        }
+        for (let i = state.obstacles.length - 1; i >= 0; i--) {
+            let o = state.obstacles[i]; o.y += dist;
+            if (o.y > LOGICAL_H) { state.obstacles.splice(i, 1); continue; }
+            const inset = 3, checkCol = (p) => (p.x - CAR_W/2 + inset < o.x + o.w && p.x + CAR_W/2 - inset > o.x && GAME_CONST.CAR_Y - CAR_H/2 + inset < o.y + o.h && GAME_CONST.CAR_Y + CAR_H/2 - inset > o.y);
+            if (checkCol(state.p1)) { triggerEnd('P2', state.score); } else if (checkCol(state.p2)) { triggerEnd('P1', state.score); }
+        }
+        sendNet({ type: 'sync', p1x: state.p1.x, obs: state.obstacles, score: state.score, isFF: state.isFF, offset: state.roadOffset, deco: state.roadDecoration });
+    }
+}
+
+function triggerEnd(winner, finalScore) { sendNet({type: 'srv_state', phase: 'GAMEOVER', winner: winner, score: finalScore}); endGame(winner, finalScore); }
+
+function draw() {
+    ctx.fillStyle = varColor('--bg-color'); ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#106010'; ctx.fillRect(0, 0, s(ROAD_X), canvas.height); ctx.fillRect(s(ROAD_X + ROAD_W), 0, s(ROAD_X), canvas.height);
+    ctx.fillStyle = '#404040'; ctx.fillRect(s(ROAD_X), 0, s(ROAD_W), canvas.height);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = s(1);
+    for(let y=0; y<LOGICAL_H; y+=20) {
+        const yo = s((y + state.roadOffset) % 40);
+        ctx.beginPath(); ctx.moveTo(s(ROAD_X), yo); ctx.lineTo(s(ROAD_X+5), yo); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(s(ROAD_X+ROAD_W-5), yo); ctx.lineTo(s(ROAD_X+ROAD_W), yo); ctx.stroke();
+    }
+    state.roadDecoration.forEach(d => ctx.drawImage(Sprites.bush, d.side === 0 ? s(d.x) : s(LOGICAL_W - d.x - 16), s(d.y), s(16), s(16)));
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = s(2);
+    for(let i=1; i<4; i++) {
+        ctx.beginPath(); if(i===2) ctx.setLineDash([s(10), s(10)]); else ctx.setLineDash([]);
+        ctx.lineDashOffset = s(-state.roadOffset); ctx.moveTo(s(ROAD_X + i * LANE_W), 0); ctx.lineTo(s(ROAD_X + i * LANE_W), canvas.height); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    state.obstacles.forEach(o => ctx.drawImage(o.type === 'banana' ? Sprites.banana : Sprites.rock, s(o.x), s(o.y), s(o.w), s(o.h)));
+    
+    ctx.drawImage(carP1, s(state.p1.x - CAR_W/2), s(GAME_CONST.CAR_Y - CAR_H/2), s(CAR_W), s(CAR_H));
+    ctx.drawImage(carP2, s(state.p2.x - CAR_W/2), s(GAME_CONST.CAR_Y - CAR_H/2), s(CAR_W), s(CAR_H));
+    
+    // Player Identification
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${s(12)}px 'Courier New'`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText("YOU", s(state.isHost ? state.p1.x : state.p2.x), s(GAME_CONST.CAR_Y - CAR_H/2 - 5));
+}
+
+function endGame(winner, finalScore) {
+    state.phase = 'GAMEOVER'; AudioSys.playCrash(); AudioSys.stopFF(); AudioSys.stopBGM(); canvas.style.display = 'none';
+    if(finalScore !== undefined) state.score = finalScore;
+    ui.finalScore.innerText = "FINAL SCORE: " + Math.floor(state.score); ui.rematchStatus.innerText = "";
+    
+    let wText = winner;
+    if(winner === 'P1') wText = state.isHost ? "YOU WON!" : "YOU LOST!";
+    else if(winner === 'P2') wText = state.isHost ? "YOU LOST!" : "YOU WON!";
+    
+    if(winner === "LINK SEVERED" || winner === "P2 DISCONNECTED" || winner === "HOST ABORTED") {
+        ui.winnerText.innerText = winner; document.getElementById('btn-rematch').classList.add('hidden');
+    } else { ui.winnerText.innerText = wText; document.getElementById('btn-rematch').classList.remove('hidden'); }
+    showScreen('gameOver');
+}
+
+function resetToMenu() {
+    AudioSys.stopFF(); AudioSys.stopBGM();
+    if(state.conn) { state.conn.close(); state.conn = null; }
+    if(state.peer) { state.peer.destroy(); state.peer = null; }
+    canvas.style.display = 'none'; setPauseUI(false); showScreen('menu');
+}
+
+document.getElementById('btn-host-menu').onclick = () => { AudioSys.playClick(); state.isHost = true; const shortId = Math.floor(1000 + Math.random() * 9000).toString(); initPeer(shortId); state.peer.on('open', () => { ui.hostId.innerText = shortId; showScreen('lobbyHost'); }); state.peer.on('connection', (c) => { if(!state.conn) { state.conn = c; handleConnection(); }}); };
+document.getElementById('btn-join-menu').onclick = () => { AudioSys.playClick(); showScreen('lobbyJoin'); };
+document.getElementById('btn-connect').onclick = () => { AudioSys.playClick(); const id = ui.joinInput.value; if(!id || id.length !== 4) return alert("Enter 4-digit ID"); state.isHost = false; initPeer(); state.peer.on('open', () => { state.conn = state.peer.connect(GAME_CONST.PEER_PREFIX + id, {reliable: true}); handleConnection(); }); };
+document.getElementById('btn-cancel-host').onclick = () => { AudioSys.playClick(); resetToMenu(); };
+document.getElementById('btn-cancel-join').onclick = () => { AudioSys.playClick(); resetToMenu(); };
+document.getElementById('btn-return').onclick = () => { AudioSys.playClick(); resetToMenu(); };
+document.getElementById('btn-exit').onclick = () => { AudioSys.playClick(); if (state.phase === 'PLAYING' || state.phase === 'PAUSED') { if(state.isHost) triggerEnd("HOST ABORTED", state.score); else sendNet({type: 'req_abort'}); } resetToMenu(); };
+document.getElementById('btn-rematch').onclick = () => { if(state.phase !== 'GAMEOVER') return; AudioSys.playClick(); state.localWantsRematch = true; ui.rematchStatus.innerText = "Waiting for oppoonent..."; sendNet({type: 'rematch', wants: true}); checkRematchLogic(); };
+function checkRematchLogic() { if(state.isHost && state.localWantsRematch && state.remoteWantsRematch) { sendNet({type: 'srv_state', phase: 'COUNTDOWN'}); startCountdown(); } }
+document.getElementById('btn-settings-menu').onclick = () => { AudioSys.playClick(); showScreen('settings'); };
+document.getElementById('btn-close-settings').onclick = () => { AudioSys.playClick(); showScreen('menu'); };
+document.getElementById('btn-pause').onclick = requestPause;
+
+function updateAudioUI() { ui.togSfx.classList.toggle('on', AudioSys.sfxEnabled); ui.togBgm.classList.toggle('on', AudioSys.bgmEnabled); document.getElementById('btn-in-sfx').style.opacity = AudioSys.sfxEnabled ? "1" : "0.5"; document.getElementById('btn-in-bgm').style.opacity = AudioSys.bgmEnabled ? "1" : "0.5"; }
+ui.togSfx.onclick = () => { AudioSys.sfxEnabled = !AudioSys.sfxEnabled; updateAudioUI(); if(AudioSys.sfxEnabled){AudioSys.init(); AudioSys.playClick();} else AudioSys.stopFF(); };
+ui.togBgm.onclick = () => { AudioSys.bgmEnabled = !AudioSys.bgmEnabled; updateAudioUI(); AudioSys.playClick(); };
+document.getElementById('btn-in-sfx').onclick = () => { AudioSys.sfxEnabled = !AudioSys.sfxEnabled; updateAudioUI(); AudioSys.playClick(); };
+document.getElementById('btn-in-bgm').onclick = () => { AudioSys.bgmEnabled = !AudioSys.bgmEnabled; updateAudioUI(); AudioSys.playClick(); if(AudioSys.bgmEnabled) AudioSys.startBGM(); else AudioSys.stopBGM(); };
+
+const setFF = (e, val) => { e.preventDefault(); e.stopPropagation(); state.localWantsFF = val; };
+const ffBtn = document.getElementById('btn-ff');
+ffBtn.addEventListener('touchstart', (e) => setFF(e, true)); ffBtn.addEventListener('touchend', (e) => setFF(e, false));
+ffBtn.addEventListener('mousedown', (e) => setFF(e, true)); ffBtn.addEventListener('mouseup', (e) => setFF(e, false));
+
+// Unified Steering for Swipe and Tap
+const handleSteer = (e, isDown) => {
+    if(state.phase !== 'PLAYING' || e.target.closest('button')) return;
+    const p = state.isHost ? state.p1 : state.p2; if(!isDown) { p.dir = 0; return; }
+    const evt = e.touches ? e.touches[0] : e, rect = document.getElementById('game-container').getBoundingClientRect(), relX = evt.clientX - rect.left;
+    p.dir = relX < rect.width / 2 ? -1 : 1;
+};
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleSteer(e, true); }, {passive: false});
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleSteer(e, true); }, {passive: false});
+canvas.addEventListener('touchend', (e) => handleSteer(e, false));
+canvas.addEventListener('mousedown', (e) => handleSteer(e, true)); window.addEventListener('mouseup', (e) => handleSteer(e, false));
+window.addEventListener('keydown', (e) => { if(state.phase === 'PLAYING') { const p = state.isHost ? state.p1 : state.p2; if(e.key === 'ArrowLeft' || e.key === 'a') p.dir = -1; if(e.key === 'ArrowRight' || e.key === 'd') p.dir = 1; if(e.key === 'f') state.localWantsFF = true; if(e.key === 'p' || e.key === 'Escape') requestPause(); }});
+window.addEventListener('keyup', (e) => { if(state.phase === 'PLAYING') { const p = state.isHost ? state.p1 : state.p2; if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'ArrowRight' || e.key === 'd') p.dir = 0; if(e.key === 'f') state.localWantsFF = false; }});
+
+updateAudioUI();
+</script>
+</body>
+</html>

@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>CYBER·PONG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- PeerJS: try jsdelivr first, fall back to unpkg -->
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"
+          onerror="(function(){var s=document.createElement('script');s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';document.head.appendChild(s);}())"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:    #04000f;
+      --cyan:  #00f5ff;
+      --pink:  #ff0090;
+      --white: #e8f4ff;
+      --grid:  rgba(90, 0, 180, 0.18);
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Orbitron', sans-serif;
+      color: var(--cyan);
+    }
+
+    /* === CRT Scanlines overlay === */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        transparent 0px, transparent 2px,
+        rgba(0,0,0,0.10) 2px, rgba(0,0,0,0.10) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ====== LOBBY ====== */
+    #lobby {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 18px; padding: 24px 20px;
+      z-index: 100;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(100,0,200,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 50% 0%,   rgba(0,200,255,0.07) 0%, transparent 70%),
+        var(--bg);
+    }
+
+    /* animated grid behind lobby */
+    #lobby::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 44px 44px;
+      animation: gridScroll 12s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes gridScroll {
+      from { background-position: 0 0; }
+      to   { background-position: 44px 44px; }
+    }
+
+    .logo {
+      font-size: clamp(32px, 9vw, 64px);
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      text-shadow: 0 0 18px var(--cyan), 0 0 50px rgba(0,245,255,0.4);
+      animation: logoPulse 2.5s ease-in-out infinite;
+      position: relative; z-index: 1;
+    }
+
+    .logo em {
+      font-style: normal;
+      color: var(--pink);
+      text-shadow: 0 0 18px var(--pink), 0 0 50px rgba(255,0,144,0.4);
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { opacity: 1; filter: brightness(1); }
+      50%       { opacity: 0.88; filter: brightness(1.2); }
+    }
+
+    .tagline {
+      font-size: 10px;
+      letter-spacing: 0.28em;
+      color: rgba(0,245,255,0.45);
+      text-transform: uppercase;
+      position: relative; z-index: 1;
+      margin-top: -12px;
+    }
+
+    .panel {
+      background: rgba(0, 245, 255, 0.04);
+      border: 1px solid rgba(0, 245, 255, 0.22);
+      border-radius: 3px;
+      padding: 18px 22px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative; z-index: 1;
+      box-shadow: 0 0 30px rgba(0,245,255,0.05), inset 0 0 20px rgba(0,245,255,0.02);
+    }
+
+    .panel-label {
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      color: rgba(0,245,255,0.4);
+      text-transform: uppercase;
+    }
+
+    #my-id-display {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 20px;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      text-shadow: 0 0 12px rgba(0,245,255,0.6);
+      text-align: center;
+      min-height: 24px;
+      word-break: break-all;
+    }
+
+    .cyber-btn {
+      background: transparent;
+      border: 1px solid currentColor;
+      color: var(--cyan);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 11px 18px;
+      cursor: pointer;
+      transition: box-shadow 0.15s, background 0.15s;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cyber-btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .cyber-btn:active::after { opacity: 0.14; }
+    .cyber-btn:active { box-shadow: 0 0 24px currentColor; }
+
+    .cyber-btn.pink { color: var(--pink); }
+
+    .cyber-input {
+      background: rgba(0,245,255,0.04);
+      border: 1px solid rgba(0,245,255,0.28);
+      border-radius: 2px;
+      color: var(--cyan);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      padding: 10px 14px;
+      outline: none;
+      width: 100%;
+      text-align: center;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .cyber-input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 18px rgba(0,245,255,0.18);
+    }
+
+    .cyber-input::placeholder {
+      color: rgba(0,245,255,0.28);
+      font-size: 13px;
+    }
+
+    #status-msg {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: rgba(0,245,255,0.55);
+      text-align: center;
+      min-height: 14px;
+      position: relative; z-index: 1;
+    }
+
+    #status-msg.err { color: var(--pink); }
+
+    #retry-btn {
+      display: none;
+      position: relative; z-index: 1;
+      color: var(--pink);
+      font-size: 11px;
+      padding: 9px 20px;
+    }
+
+    /* ====== GAME WRAP ====== */
+    #game-wrap {
+      position: fixed; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: var(--bg);
+    }
+    #game-wrap.on { display: flex; }
+
+    canvas {
+      display: block;
+      image-rendering: crisp-edges;
+    }
+
+    /* ====== HUD ====== */
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 52px;
+      display: none;
+      align-items: center; justify-content: center;
+      gap: 28px;
+      z-index: 200;
+      pointer-events: none;
+      background: linear-gradient(to bottom, rgba(4,0,15,0.85) 0%, transparent 100%);
+    }
+    #hud.on { display: flex; }
+
+    .score-num {
+      font-size: clamp(22px, 5.5vw, 42px);
+      font-weight: 900;
+      letter-spacing: 0.05em;
+    }
+    #s1 { color: var(--cyan); text-shadow: 0 0 20px var(--cyan); }
+    #s2 { color: var(--pink); text-shadow: 0 0 20px var(--pink); }
+    .score-sep { color: rgba(255,255,255,0.18); font-size: clamp(14px,3vw,28px); }
+
+    /* Player labels */
+    .plabel {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      opacity: 0.5;
+    }
+    #l1 { color: var(--cyan); }
+    #l2 { color: var(--pink); }
+
+    /* ====== TOUCH OVERLAY ====== */
+    #touch-overlay {
+      position: fixed; inset: 0;
+      display: none;
+      z-index: 150;
+      touch-action: none;
+      cursor: none;
+    }
+    #touch-overlay.on { display: block; }
+
+    /* visual hint zones */
+    #touch-overlay::before,
+    #touch-overlay::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0;
+      width: 46%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    #touch-overlay::before {
+      left: 0;
+      background: linear-gradient(to right, rgba(0,245,255,0.04) 0%, transparent 100%);
+    }
+    #touch-overlay::after {
+      right: 0;
+      background: linear-gradient(to left, rgba(255,0,144,0.04) 0%, transparent 100%);
+    }
+    #touch-overlay.hint::before,
+    #touch-overlay.hint::after { opacity: 1; }
+
+    /* ====== WIN BANNER ====== */
+    #win-banner {
+      position: fixed; inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px;
+      z-index: 300;
+      pointer-events: none;
+      background: rgba(4,0,15,0.55);
+    }
+    #win-banner.on { display: flex; }
+
+    #win-text {
+      font-size: clamp(28px, 8vw, 64px);
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      animation: winFlash 0.45s ease-in-out infinite alternate;
+    }
+
+    #win-sub {
+      font-size: clamp(10px, 2.5vw, 14px);
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.4);
+    }
+
+    @keyframes winFlash {
+      from { opacity: 1;   filter: brightness(1.3); }
+      to   { opacity: 0.4; filter: brightness(0.7); }
+    }
+
+    /* ====== DISCONNECT BTN ====== */
+    #disc-btn {
+      position: fixed;
+      bottom: 14px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 250;
+      font-size: 9px;
+      padding: 8px 14px;
+      display: none;
+      opacity: 0.55;
+    }
+    #disc-btn.on { display: block; }
+    #disc-btn:active { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOBBY ===== -->
+<div id="lobby">
+  <div class="logo">CYBER<em>·</em>PONG</div>
+  <div class="tagline">2-Player · Peer to Peer</div>
+
+  <div class="panel">
+    <div class="panel-label">Your Connection ID</div>
+    <div id="my-id-display">···</div>
+    <button class="cyber-btn" id="copy-btn">⎘ &nbsp;Copy My ID</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Join a Friend</div>
+    <input class="cyber-input" id="friend-input" type="text"
+           placeholder="Paste Friend's ID"
+           autocomplete="off" autocorrect="off"
+           autocapitalize="none" spellcheck="false">
+    <button class="cyber-btn pink" id="connect-btn">▶ &nbsp;Connect</button>
+  </div>
+
+  <div id="status-msg">Connecting to network…</div>
+  <button class="cyber-btn pink" id="retry-btn">↺ &nbsp;Retry Connection</button>
+</div>
+
+<!-- ===== GAME ===== -->
+<div id="game-wrap">
+  <canvas id="game-canvas"></canvas>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <span class="plabel" id="l1">P1</span>
+  <span class="score-num" id="s1">0</span>
+  <span class="score-sep">:</span>
+  <span class="score-num" id="s2">0</span>
+  <span class="plabel" id="l2">P2</span>
+</div>
+
+<!-- Touch overlay (game only) -->
+<div id="touch-overlay"></div>
+
+<!-- Win banner -->
+<div id="win-banner">
+  <div id="win-text"></div>
+  <div id="win-sub">RETURNING TO LOBBY…</div>
+</div>
+
+<!-- Disconnect -->
+<button class="cyber-btn" id="disc-btn">✕ &nbsp;Disconnect</button>
+
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CYBER·PONG — Multiplayer via PeerJS
+//  Host = P1 (cyan, left)  |  Guest = P2 (pink, right)
+// ═══════════════════════════════════════════════════════
+
+const GW = 800, GH = 500;         // logical canvas size
+const PW = 13,  PH = 88;          // paddle w/h
+const BR = 9;                      // ball radius
+const PADDLE_SPD = 7;
+const INIT_SPD   = 5.2;
+const MAX_SPD    = 15;
+const WIN        = 7;
+const TRAIL_LEN  = 9;
+
+// ─── DOM refs ───
+const lobbyEl   = document.getElementById('lobby');
+const gameWrap  = document.getElementById('game-wrap');
+const canvas    = document.getElementById('game-canvas');
+const ctx       = canvas.getContext('2d');
+const hudEl     = document.getElementById('hud');
+const touchEl   = document.getElementById('touch-overlay');
+const bannerEl  = document.getElementById('win-banner');
+const winText   = document.getElementById('win-text');
+const discBtn   = document.getElementById('disc-btn');
+const s1El      = document.getElementById('s1');
+const s2El      = document.getElementById('s2');
+const l1El      = document.getElementById('l1');
+const l2El      = document.getElementById('l2');
+const statusEl  = document.getElementById('status-msg');
+const myIdEl    = document.getElementById('my-id-display');
+const copyBtn   = document.getElementById('copy-btn');
+const friendIn  = document.getElementById('friend-input');
+const connBtn   = document.getElementById('connect-btn');
+const retryBtn  = document.getElementById('retry-btn');
+
+// ─── State ───
+let peer, conn;
+let isHost      = false;
+let gameActive  = false;
+let gameOver    = false;
+let scale       = 1;
+let canvasRect  = null;
+let animId      = null;
+let lastTS      = 0;
+
+let p1y = GH / 2;   // paddle center Y
+let p2y = GH / 2;
+let bx  = GW / 2, by = GH / 2;
+let bvx = INIT_SPD, bvy = 0;
+let score1 = 0, score2 = 0;
+
+let trail       = [];   // [{x,y}]
+let particles   = [];
+let ripples     = [];
+
+// keyboard
+const keys = {};
+
+// ─── Canvas resize ───
+function resize() {
+  const W = window.innerWidth, H = window.innerHeight;
+  scale  = Math.min(W / GW, H / GH);
+  canvas.width  = GW;
+  canvas.height = GH;
+  canvas.style.width  = (GW * scale) + 'px';
+  canvas.style.height = (GH * scale) + 'px';
+  canvasRect = null; // invalidate cache
+}
+window.addEventListener('resize', resize);
+resize();
+
+function getCanvasRect() {
+  if (!canvasRect) canvasRect = canvas.getBoundingClientRect();
+  return canvasRect;
+}
+
+// ─── Map screen Y → game Y ───
+function toGameY(clientY) {
+  const r = getCanvasRect();
+  const gy = (clientY - r.top) / scale;
+  return Math.max(PH / 2, Math.min(GH - PH / 2, gy));
+}
+
+// ─── PeerJS — robust init with auto-retry ───
+let peerInitTimer = null;
+
+retryBtn.addEventListener('click', () => initPeer(1));
+
+function initPeer(attempt) {
+  attempt = attempt || 1;
+  if (peerInitTimer) { clearTimeout(peerInitTimer); peerInitTimer = null; }
+
+  // Destroy any stale peer
+  if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+
+  retryBtn.style.display = 'none';
+  myIdEl.textContent = '···';
+  setStatus(attempt > 1 ? `Retrying… (attempt ${attempt}/3)` : 'Connecting to network…');
+
+  // Check if PeerJS even loaded
+  if (typeof Peer === 'undefined') {
+    setStatus('PeerJS library failed to load — check your network, then retry.', true);
+    retryBtn.style.display = 'block';
+    return;
+  }
+
+  try {
+    peer = new Peer(undefined, {
+      debug: 0,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+        ]
+      }
+    });
+  } catch(e) {
+    setStatus('Could not create peer — ' + e.message, true);
+    retryBtn.style.display = 'block';
+    return;
+  }
+
+  // Timeout: if no ID within 12 s, retry
+  peerInitTimer = setTimeout(() => {
+    if (!peer || !peer.id) {
+      try { peer.destroy(); } catch(e) {} peer = null;
+      if (attempt < 3) {
+        initPeer(attempt + 1);
+      } else {
+        setStatus('Could not reach the PeerJS network. Tap Retry.', true);
+        retryBtn.style.display = 'block';
+      }
+    }
+  }, 12000);
+
+  peer.on('open', id => {
+    clearTimeout(peerInitTimer);
+    retryBtn.style.display = 'none';
+    myIdEl.textContent = id;
+    setStatus('Ready — share your ID or enter a friend\'s.');
+  });
+
+  peer.on('connection', inConn => {
+    if (conn) { inConn.close(); return; }
+    conn   = inConn;
+    isHost = true;
+    setupConn();
+    setStatus('Opponent connected — starting…');
+    setTimeout(() => { conn.send({ t: 'start' }); launchGame(); }, 600);
+  });
+
+  peer.on('error', err => {
+    clearTimeout(peerInitTimer);
+    const MSG = {
+      'network':         'Network unavailable — check your connection.',
+      'peer-unavailable':'Friend ID not found — double-check it.',
+      'server-error':    'PeerJS server error.',
+      'socket-error':    'Socket dropped.',
+      'unavailable-id':  'ID taken — getting a new one…',
+      'browser-incompatible': 'Your browser does not support WebRTC.',
+    };
+    const msg = MSG[err.type] || ('Error: ' + err.type);
+    setStatus(msg, true);
+
+    // Auto-retry transient server errors
+    const transient = ['server-error', 'socket-error', 'unavailable-id'];
+    if (transient.includes(err.type) && attempt < 3) {
+      setTimeout(() => initPeer(attempt + 1), 2500);
+    } else if (err.type !== 'peer-unavailable') {
+      retryBtn.style.display = 'block';
+    }
+  });
+}
+
+// Guest connects to host
+connBtn.addEventListener('click', () => {
+  const fid = friendIn.value.trim();
+  if (!fid) { setStatus('Please paste your friend\'s ID first.', true); return; }
+  if (!peer || !peer.id) { setStatus('Still connecting to network — wait a moment.', true); return; }
+  setStatus('Connecting to peer…');
+  try {
+    conn   = peer.connect(fid, { reliable: false, serialization: 'json' });
+    isHost = false;
+    setupConn();
+  } catch(e) {
+    setStatus('Connection failed: ' + e.message, true);
+  }
+});
+
+copyBtn.addEventListener('click', () => {
+  const id = myIdEl.textContent.trim();
+  if (!id || id === '···') return;
+  navigator.clipboard.writeText(id)
+    .then(() => { copyBtn.textContent = '✓  Copied!'; setTimeout(() => copyBtn.innerHTML = '⎘ &nbsp;Copy My ID', 2200); })
+    .catch(() => { prompt('Copy this ID:', id); });
+});
+
+function setupConn() {
+  let openTimer = setTimeout(() => {
+    setStatus('Connection timed out — check the ID and retry.', true);
+    conn = null;
+  }, 15000);
+
+  conn.on('open', () => {
+    clearTimeout(openTimer);
+    if (!isHost) setStatus('Connected! Waiting for host to start…');
+  });
+  conn.on('data', onData);
+  conn.on('close', () => {
+    clearTimeout(openTimer);
+    if (gameActive) stopGame('Opponent disconnected.');
+    else setStatus('Connection closed.', true);
+  });
+  conn.on('error', err => {
+    clearTimeout(openTimer);
+    if (gameActive) stopGame('Connection error.');
+    else setStatus('Connection error: ' + (err.type || err.message || err), true);
+  });
+}
+
+// ─── Network messages ───
+function onData(d) {
+  switch(d.t) {
+    case 'start': launchGame(); break;
+    case 'b':  // ball state (host → guest)
+      if (!isHost) { bx = d.x; by = d.y; bvx = d.vx; bvy = d.vy; }
+      break;
+    case 'p':  // paddle (both directions)
+      if (isHost)  p2y = d.y;
+      else         p1y = d.y;
+      break;
+    case 's':  // score (host → guest)
+      if (!isHost) { score1 = d.s1; score2 = d.s2; updateHUD(); }
+      break;
+    case 'win':  // (host → guest)
+      if (!isHost) triggerWin(d.you ? 'YOU WIN' : 'P1 WINS', d.you);
+      break;
+    case 'px': // particle sync
+      spawnParticles(d.x, d.y, d.c, false);
+      break;
+  }
+}
+
+function send(obj) {
+  if (conn && conn.open) {
+    try { conn.send(obj); } catch(e) {}
+  }
+}
+
+// ─── Game lifecycle ───
+function launchGame() {
+  gameActive = true;
+  gameOver   = false;
+  score1 = score2 = 0;
+  p1y = p2y = GH / 2;
+  trail = []; particles = []; ripples = [];
+  resetBall(1);
+  updateHUD();
+
+  lobbyEl.style.display  = 'none';
+  gameWrap.classList.add('on');
+  hudEl.classList.add('on');
+  touchEl.classList.add('on');
+  discBtn.classList.add('on');
+  bannerEl.classList.remove('on');
+
+  // hint zones briefly
+  touchEl.classList.add('hint');
+  setTimeout(() => touchEl.classList.remove('hint'), 1800);
+
+  // update labels
+  l1El.textContent = isHost  ? 'YOU' : 'P1';
+  l2El.textContent = !isHost ? 'YOU' : 'P2';
+
+  lastTS = performance.now();
+  if (animId) cancelAnimationFrame(animId);
+  animId = requestAnimationFrame(loop);
+}
+
+function stopGame(reason) {
+  gameActive = false;
+  gameOver   = false;
+  conn       = null;
+
+  gameWrap.classList.remove('on');
+  hudEl.classList.remove('on');
+  touchEl.classList.remove('on');
+  discBtn.classList.remove('on');
+  bannerEl.classList.remove('on');
+  lobbyEl.style.display = '';
+
+  setStatus(reason || 'Disconnected.');
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+}
+
+discBtn.addEventListener('click', () => {
+  if (conn) conn.close();
+  stopGame('You disconnected.');
+});
+
+function setStatus(msg, err = false) {
+  statusEl.textContent = msg;
+  statusEl.classList.toggle('err', err);
+}
+
+function updateHUD() {
+  s1El.textContent = score1;
+  s2El.textContent = score2;
+}
+
+function resetBall(dir) {
+  bx  = GW / 2;
+  by  = GH / 2 + (Math.random() - 0.5) * 60;
+  const a = (Math.random() * 40 - 20) * Math.PI / 180;
+  const d = dir || (Math.random() < 0.5 ? 1 : -1);
+  bvx = INIT_SPD * d * Math.cos(a);
+  bvy = INIT_SPD * Math.sin(a);
+  trail = [];
+}
+
+// ─── Input: Touch ───
+touchEl.addEventListener('touchstart', handleTouch, { passive: false });
+touchEl.addEventListener('touchmove',  handleTouch, { passive: false });
+touchEl.addEventListener('touchend',   e => e.preventDefault(), { passive: false });
+
+function handleTouch(e) {
+  e.preventDefault();
+  if (!gameActive || gameOver) return;
+  const t = e.touches[0];
+  if (!t) return;
+  const gy = toGameY(t.clientY);
+  sendPaddle(gy);
+}
+
+// ─── Input: Mouse (desktop fallback) ───
+touchEl.addEventListener('mousemove', e => {
+  if (!gameActive || gameOver) return;
+  sendPaddle(toGameY(e.clientY));
+});
+
+// ─── Input: Keyboard ───
+window.addEventListener('keydown', e => { keys[e.key] = true; });
+window.addEventListener('keyup',   e => { keys[e.key] = false; });
+
+function sendPaddle(gy) {
+  if (isHost) p1y = gy;
+  else        p2y = gy;
+  send({ t: 'p', y: gy });
+}
+
+// ─── Game loop ───
+function loop(ts) {
+  if (!gameActive) return;
+  const dt = Math.min((ts - lastTS) / 16.667, 3.5);
+  lastTS = ts;
+
+  handleKeys(dt);
+
+  if (isHost && !gameOver) {
+    updateBall(dt);
+  }
+
+  updateParticles(dt);
+  updateRipples(dt);
+  render();
+
+  animId = requestAnimationFrame(loop);
+}
+
+function handleKeys(dt) {
+  if (gameOver) return;
+  let moved = false;
+  const spd = PADDLE_SPD * dt;
+
+  if (isHost) {
+    if (keys['w'] || keys['W'] || keys['ArrowUp'])   { p1y = Math.max(PH/2, p1y - spd); moved = true; }
+    if (keys['s'] || keys['S'] || keys['ArrowDown'])  { p1y = Math.min(GH - PH/2, p1y + spd); moved = true; }
+  } else {
+    if (keys['w'] || keys['W'] || keys['ArrowUp'])   { p2y = Math.max(PH/2, p2y - spd); moved = true; }
+    if (keys['s'] || keys['S'] || keys['ArrowDown'])  { p2y = Math.min(GH - PH/2, p2y + spd); moved = true; }
+  }
+
+  if (moved) send({ t: 'p', y: isHost ? p1y : p2y });
+}
+
+function updateBall(dt) {
+  // trail
+  trail.unshift({ x: bx, y: by });
+  if (trail.length > TRAIL_LEN) trail.pop();
+
+  bx += bvx * dt;
+  by += bvy * dt;
+
+  // Wall bounces (top/bottom)
+  if (by - BR < 0) {
+    by = BR; bvy = Math.abs(bvy);
+    hitEffect(bx, by, '#ffffff', false);
+  }
+  if (by + BR > GH) {
+    by = GH - BR; bvy = -Math.abs(bvy);
+    hitEffect(bx, by, '#ffffff', false);
+  }
+
+  // P1 paddle (left)
+  const p1x = 28;
+  if (bvx < 0 && bx - BR < p1x + PW && bx - BR > p1x - 4) {
+    if (by >= p1y - PH/2 - BR && by <= p1y + PH/2 + BR) {
+      bvx  = Math.abs(bvx) * 1.06;
+      bvy += (by - p1y) / (PH / 2) * 3.5;
+      bvx  = Math.min(bvx, MAX_SPD);
+      bx   = p1x + PW + BR;
+      clampBvy();
+      hitEffect(bx, by, '#00f5ff', true);
+    }
+  }
+
+  // P2 paddle (right)
+  const p2x = GW - 28 - PW;
+  if (bvx > 0 && bx + BR > p2x && bx + BR < p2x + PW + 4) {
+    if (by >= p2y - PH/2 - BR && by <= p2y + PH/2 + BR) {
+      bvx  = -Math.abs(bvx) * 1.06;
+      bvy += (by - p2y) / (PH / 2) * 3.5;
+      bvx  = Math.max(bvx, -MAX_SPD);
+      bx   = p2x - BR;
+      clampBvy();
+      hitEffect(bx, by, '#ff0090', true);
+    }
+  }
+
+  // Scoring
+  if (bx < -30) {
+    score2++;
+    updateHUD();
+    send({ t: 's', s1: score1, s2: score2 });
+    if (score2 >= WIN) {
+      triggerWin('P2 WINS', false);
+      send({ t: 'win', you: true });
+    } else {
+      resetBall(-1);
+    }
+  }
+  if (bx > GW + 30) {
+    score1++;
+    updateHUD();
+    send({ t: 's', s1: score1, s2: score2 });
+    if (score1 >= WIN) {
+      triggerWin('YOU WIN', true);
+      send({ t: 'win', you: false });
+    } else {
+      resetBall(1);
+    }
+  }
+
+  // Send ball state to guest every frame
+  send({ t: 'b', x: bx, y: by, vx: bvx, vy: bvy });
+}
+
+function clampBvy() {
+  const spd = Math.hypot(bvx, bvy);
+  const maxBvy = spd * 0.82;
+  if (Math.abs(bvy) > maxBvy) bvy = Math.sign(bvy) * maxBvy;
+}
+
+function hitEffect(x, y, color, sync) {
+  spawnParticles(x, y, color, true);
+  ripples.push({ x, y, r: 0, maxR: 50, color, life: 1 });
+  if (sync) send({ t: 'px', x, y, c: color });
+}
+
+// ─── Particles ───
+function spawnParticles(x, y, color, withRipple) {
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = 1.5 + Math.random() * 5;
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * s,
+      vy: Math.sin(a) * s,
+      life: 1,
+      decay: 0.035 + Math.random() * 0.025,
+      r: 1.5 + Math.random() * 2.5,
+      color
+    });
+  }
+  if (withRipple) ripples.push({ x, y, r: 0, maxR: 45, color, life: 1 });
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x   += p.vx * dt;
+    p.y   += p.vy * dt;
+    p.vy  += 0.25 * dt;
+    p.life -= p.decay * dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function updateRipples(dt) {
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const r = ripples[i];
+    r.r    += 4 * dt;
+    r.life -= 0.06 * dt;
+    if (r.life <= 0) ripples.splice(i, 1);
+  }
+}
+
+// ─── Win ───
+function triggerWin(msg, youWin) {
+  gameOver = true;
+  winText.textContent = msg;
+  const col = (youWin || msg.includes('YOU')) && !msg.includes('P2') ? '#00f5ff' : '#ff0090';
+  winText.style.color      = col;
+  winText.style.textShadow = `0 0 30px ${col}, 0 0 80px ${col}`;
+  bannerEl.classList.add('on');
+  setTimeout(() => stopGame('Game over — play again?'), 4200);
+}
+
+// ─── Render ───
+// Pre-build static gradient once
+let bgGrad = null;
+function getBgGrad() {
+  if (bgGrad) return bgGrad;
+  bgGrad = ctx.createRadialGradient(GW/2, GH/2, 0, GW/2, GH/2, GW * 0.65);
+  bgGrad.addColorStop(0, '#0d0030');
+  bgGrad.addColorStop(1, '#04000f');
+  return bgGrad;
+}
+
+// Glow grid lines time
+let gridTime = 0;
+
+function render() {
+  gridTime += 0.012;
+
+  // Background
+  ctx.fillStyle = getBgGrad();
+  ctx.fillRect(0, 0, GW, GH);
+
+  // Grid
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= GW; x += 44) {
+    const pulse = Math.sin(gridTime + x * 0.01) * 0.5 + 0.5;
+    ctx.strokeStyle = `rgba(80,0,160,${0.10 + pulse * 0.06})`;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GH); ctx.stroke();
+  }
+  for (let y = 0; y <= GH; y += 44) {
+    const pulse = Math.sin(gridTime + y * 0.015) * 0.5 + 0.5;
+    ctx.strokeStyle = `rgba(80,0,160,${0.10 + pulse * 0.06})`;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GW, y); ctx.stroke();
+  }
+
+  // Center dashed line
+  ctx.setLineDash([7, 14]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(GW/2, 0); ctx.lineTo(GW/2, GH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Vignette
+  const vig = ctx.createRadialGradient(GW/2, GH/2, GH*0.35, GW/2, GH/2, GW*0.72);
+  vig.addColorStop(0, 'transparent');
+  vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, GW, GH);
+
+  // Ripples
+  for (const r of ripples) {
+    ctx.globalAlpha = r.life * 0.5;
+    ctx.strokeStyle = r.color;
+    ctx.shadowBlur  = 8;
+    ctx.shadowColor = r.color;
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  ctx.globalAlpha = 1;
+
+  // Ball trail
+  for (let i = trail.length - 1; i >= 0; i--) {
+    const t = trail[i];
+    const f = 1 - i / TRAIL_LEN;
+    ctx.globalAlpha  = f * 0.35;
+    ctx.shadowBlur   = 10 * f;
+    ctx.shadowColor  = '#ffffff';
+    ctx.fillStyle    = '#88ccff';
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, BR * f * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur  = 0;
+
+  // Paddles
+  drawPaddle(28, p1y, '#00f5ff');
+  drawPaddle(GW - 28 - PW, p2y, '#ff0090');
+
+  // Ball
+  drawBall(bx, by);
+
+  // Particles
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.shadowBlur  = 10;
+    ctx.shadowColor = p.color;
+    ctx.fillStyle   = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur  = 0;
+}
+
+function drawPaddle(x, cy, color) {
+  const y = cy - PH / 2;
+
+  // Deep outer glow
+  ctx.shadowBlur  = 40;
+  ctx.shadowColor = color;
+  ctx.fillStyle   = color;
+  ctx.fillRect(x, y, PW, PH);
+
+  // Bright inner stripe
+  ctx.shadowBlur  = 60;
+  ctx.fillStyle   = 'rgba(255,255,255,0.92)';
+  ctx.fillRect(x + 3, y + 3, PW - 6, PH - 6);
+
+  // Top/bottom edge accent
+  ctx.shadowBlur  = 0;
+  ctx.fillStyle   = color;
+  ctx.fillRect(x, y, PW, 3);
+  ctx.fillRect(x, y + PH - 3, PW, 3);
+
+  ctx.shadowBlur  = 0;
+}
+
+function drawBall(x, y) {
+  // Outer corona
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, BR * 3);
+  grad.addColorStop(0, 'rgba(180,220,255,0.3)');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(x, y, BR * 3, 0, Math.PI * 2); ctx.fill();
+
+  // Glow ball
+  ctx.shadowBlur  = 35;
+  ctx.shadowColor = '#ffffff';
+  ctx.fillStyle   = '#c8e8ff';
+  ctx.beginPath(); ctx.arc(x, y, BR, 0, Math.PI * 2); ctx.fill();
+
+  // White core
+  ctx.shadowBlur  = 60;
+  ctx.shadowColor = '#ffffff';
+  ctx.fillStyle   = '#ffffff';
+  ctx.beginPath(); ctx.arc(x, y, BR * 0.55, 0, Math.PI * 2); ctx.fill();
+
+  ctx.shadowBlur  = 0;
+}
+
+// ─── Boot ───
+initPeer();
+</script>
+</body>
+</html>
