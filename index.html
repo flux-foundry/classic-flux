@@ -3,162 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>flux-foundry / classic-flux</title>
+    <title>flux-foundry / arcade</title>
     <style>
+        /* PRO CODER OBSIDIAN THEME (NO BLUE) */
         :root {
-            --gh-bg: #0d1117;
-            --gh-secondary: #161b22;
-            --gh-border: #30363d;
-            --gh-text: #c9d1d9;
-            --gh-text-dim: #8b949e;
-            --gh-link: #58a6ff;
-            --gh-success: #238636;
+            --bg-black: #010409;
+            --bg-dark: #0d1117;
+            --border: #30363d;
+            --text-white: #f0f6fc;
+            --text-dim: #8b949e;
+            --emerald: #39d353; /* GitHub Green */
+            --accent-dim: #238636;
+            --mono: 'JetBrains Mono', 'Fira Code', monospace;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background-color: #010409;
-            color: var(--gh-text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            padding: 40px 20px;
-            line-height: 1.5;
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            font-family: var(--mono);
+            display: flex;
+            justify-content: center;
+            padding: 60px 20px;
         }
 
         .container {
-            max-width: 900px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 800px;
         }
 
-        /* Top Repository Header */
-        .repo-header {
+        /* BREADCRUMB - GRAYSCALE */
+        .breadcrumb {
+            font-size: 13px;
+            margin-bottom: 30px;
+            color: var(--text-dim);
+            letter-spacing: 0.5px;
+        }
+        .breadcrumb span { color: var(--text-white); font-weight: bold; }
+
+        /* CATEGORY LABELS */
+        .category-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-dim);
+            text-transform: uppercase;
+            margin: 40px 0 12px;
+            letter-spacing: 2px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 20px;
-            margin-bottom: 24px;
+            gap: 15px;
         }
-        .repo-header a { color: var(--gh-link); text-decoration: none; }
-        .repo-header span { color: var(--gh-text-dim); }
-        .badge {
-            font-size: 12px;
-            padding: 2px 10px;
-            border: 1px solid var(--gh-border);
-            border-radius: 20px;
-            color: var(--gh-text-dim);
-            font-weight: 500;
+        .category-label::after {
+            content: "";
+            flex-grow: 1;
+            height: 1px;
+            background: var(--border);
         }
 
-        /* The Main GitHub Content Box */
-        .box {
-            background: var(--gh-bg);
-            border: 1px solid var(--gh-border);
-            border-radius: 6px;
+        /* GAME BOX */
+        .terminal-box {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 4px; /* Sharper corners for pro look */
             overflow: hidden;
-            margin-bottom: 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
 
-        .box-header {
-            background: var(--gh-secondary);
-            padding: 16px;
-            border-bottom: 1px solid var(--gh-border);
-            display: flex;
-            justify-content: space-between;
+        .game-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
             align-items: center;
-            font-size: 14px;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none;
+            color: var(--text-white);
+            transition: 0.15s ease-in-out;
+            position: relative;
         }
 
-        .user-info { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-        .commit-info { color: var(--gh-text-dim); font-size: 13px; }
+        .game-row:last-child { border-bottom: none; }
 
-        /* Rows */
-        .row {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--gh-border);
-            font-size: 14px;
-            transition: background 0.1s;
+        /* HOVER STATE - GREEN ACCENT */
+        .game-row:hover {
+            background: rgba(57, 211, 83, 0.03);
+            border-left: 4px solid var(--emerald);
+            padding-left: 20px;
         }
-        .row:last-child { border-bottom: none; }
-        .row:hover { background: rgba(139, 148, 158, 0.05); }
 
-        .name-col { flex: 1; display: flex; align-items: center; }
-        .name-col a { color: var(--gh-text); text-decoration: none; font-weight: 400; }
-        .name-col a:hover { color: var(--gh-link); text-decoration: underline; }
-
-        .msg-col { flex: 2; color: var(--gh-text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .time-col { flex: 0 0 100px; text-align: right; color: var(--gh-text-dim); }
-
-        /* Section Headings */
-        .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
+        .name-group {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 20px;
         }
+
+        .game-name {
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: -0.2px;
+        }
+
+        /* GENRE TAGS - RETRO GREEN */
+        .genre-tag {
+            font-size: 10px;
+            padding: 3px 10px;
+            border: 1px solid var(--accent-dim);
+            color: var(--emerald);
+            background: rgba(35, 134, 54, 0.1);
+            text-transform: uppercase;
+            font-weight: bold;
+            border-radius: 2px;
+        }
+
+        .status-code {
+            font-size: 12px;
+            color: var(--text-dim);
+            font-family: var(--mono);
+        }
+
+        .game-row:hover .game-name { color: var(--emerald); }
+        .game-row:hover .status-code { color: var(--text-white); }
+
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="repo-header">
-        <a href="#">flux-foundry</a> <span>/</span> <a href="#" style="font-weight:600;">classic-flux</a>
-        <div class="badge">Public</div>
-    </div>
-
-    <!-- Category: Multiplayer -->
-    <div class="section-title">multiplayer_2P</div>
-    <div class="box">
-        <div class="box-header">
-            <div class="user-info">flux-foundry</div>
-            <div class="commit-info">Verified Build • v1.4.2</div>
-        </div>
-        
-        <div class="row">
-            <div class="name-col"><a href="./multiplayer_2P/cyber_pong/">cyber_pong</a></div>
-            <div class="msg-col">Implement competitive paddle physics</div>
-            <div class="time-col">2m ago</div>
-        </div>
-        <div class="row">
-            <div class="name-col"><a href="./multiplayer_2P/pixel_reaction/">pixel_reaction</a></div>
-            <div class="msg-col">Update reaction time measurement precision</div>
-            <div class="time-col">14m ago</div>
-        </div>
-        <div class="row">
-            <div class="name-col"><a href="./multiplayer_2P/tap_drift_duel/">tap_drift_duel</a></div>
-            <div class="msg-col">Adjust momentum friction constants</div>
-            <div class="time-col">2h ago</div>
-        </div>
-    </div>
-
-    <!-- Category: Singleplayer -->
-    <div class="section-title">singleplayer</div>
-    <div class="box">
-        <div class="box-header">
-            <div class="user-info">flux-foundry</div>
-            <div class="commit-info">Stable Modules</div>
+    <div class="container">
+        <div class="breadcrumb">
+            ~/projects/<span>classic-flux</span>/bin/
         </div>
 
-        <div class="row">
-            <div class="name-col"><a href="./singleplayer/crystal_tetris/">crystal_tetris</a></div>
-            <div class="msg-col">Refactor grid clearing logic</div>
-            <div class="time-col">5h ago</div>
+        <!-- MULTIPLAYER -->
+        <div class="category-label">sys.multiplayer_2p</div>
+        <div class="terminal-box">
+            <a href="./multiplayer_2P/cyber_pong/" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">cyber_pong</span>
+                    <span class="genre-tag">Competitive</span>
+                </div>
+                <div class="status-code">0x001_READY</div>
+            </a>
+            <a href="./multiplayer_2P/pixel_reaction/" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">pixel_reaction</span>
+                    <span class="genre-tag">Reflex</span>
+                </div>
+                <div class="status-code">0x002_ACTIVE</div>
+            </a>
+            <a href="./multiplayer_2P/tap_drift_duel/" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">tap_drift_duel</span>
+                    <span class="genre-tag">Racing</span>
+                </div>
+                <div class="status-code">0x003_STABLE</div>
+            </a>
         </div>
-        <div class="row">
-            <div class="name-col"><a href="./singleplayer/Pøng/">Pøng</a></div>
-            <div class="msg-col">Fix character encoding for localized assets</div>
-            <div class="time-col">1d ago</div>
-        </div>
-        <div class="row">
-            <div class="name-col"><a href="./singleplayer/pop_wrap/">pop_wrap</a></div>
-            <div class="msg-col">Optimize wrap-around boundary detection</div>
-            <div class="time-col">3d ago</div>
+
+        <!-- SINGLEPLAYER -->
+        <div class="category-label">sys.singleplayer</div>
+        <div class="terminal-box">
+            <a href="./singleplayer/crystal_tetris/" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">crystal_tetris</span>
+                    <span class="genre-tag">Puzzle</span>
+                </div>
+                <div class="status-code">0x004_LOADED</div>
+            </a>
+            <a href="./singleplayer/pøng/" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">Pøng</span>
+                    <span class="genre-tag">Arcade</span>
+                </div>
+                <div class="status-code">0x005_LEGACY</div>
+            </a>
+            <a href="./singleplayer/pop_wrap/" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">pop_wrap</span>
+                    <span class="genre-tag">Logic</span>
+                </div>
+                <div class="status-code">0x006_READY</div>
+            </a>
         </div>
     </div>
-</div>
 
 </body>
 </html>
