@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dynamic 8-Bit Pong - Speed Modes</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+            font-family: 'Press Start 2P', monospace;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #app-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        #speed-indicator {
+            height: 24px;
+            margin-bottom: 15px;
+            font-size: 20px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .speed-fast { color: #FFFF00; text-shadow: 3px 3px 0px #FF0000; }
+        .speed-fastest { 
+            color: #FF0000; 
+            text-shadow: 3px 3px 0px #FFF; 
+            animation: flash 0.3s step-end infinite; 
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            border: 4px solid #fff;
+            background-color: #000;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated; 
+        }
+
+        .ui-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: rgba(0,0,0,0.85);
+            z-index: 10;
+        }
+
+        .active-screen { display: flex; }
+
+        h1 { font-size: 40px; margin-bottom: 20px; color: #FFF; text-shadow: 4px 4px 0 #F00; }
+        
+        .mode-played-text { font-size: 14px; margin-bottom: 40px; color: #AAA; }
+
+        .menu-btn {
+            background: transparent;
+            border: none;
+            color: #FFF;
+            font-family: inherit;
+            font-size: 20px;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+        .menu-btn:hover { color: #FF0; text-shadow: 2px 2px 0 #F0F; }
+
+        #external-hud {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+            opacity: 0; 
+            pointer-events: none;
+        }
+
+        .hud-btn {
+            background: #000; border: 4px solid #fff; color: #fff;
+            font-family: inherit; font-size: 16px; padding: 15px 20px; 
+            cursor: pointer;
+        }
+        .hud-btn:active { background: #fff; color: #000; }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 24px; }
+            .menu-btn { font-size: 14px; }
+            .hud-btn { font-size: 12px; padding: 10px; }
+            #external-hud { margin-top: 10px; gap: 10px; }
+            #speed-indicator { font-size: 14px; margin-bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-wrapper">
+        <!-- External Mode Indicator -->
+        <div id="speed-indicator"></div>
+
+        <div id="game-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            <!-- Main Menu -->
+            <div id="menu-screen" class="ui-screen active-screen">
+                <h1 style="margin-bottom: 40px;">PONG</h1>
+                <button class="menu-btn" onclick="startGame()">PLAY GAME</button>
+                <button class="menu-btn" onclick="showOptions()">OPTIONS</button>
+            </div>
+
+            <!-- Options -->
+            <div id="options-screen" class="ui-screen">
+                <h1 style="margin-bottom: 40px;">OPTIONS</h1>
+                <button class="menu-btn" id="sfx-btn" onclick="toggleSFX()">SFX: ON</button>
+                <button class="menu-btn" id="bgm-btn" onclick="toggleBGM()">MUSIC: ON</button>
+                <button class="menu-btn" id="speed-btn" onclick="toggleSpeed()">SPEED: NORMAL</button>
+                <button class="menu-btn" onclick="showMenu()">BACK</button>
+            </div>
+
+            <!-- Pause -->
+            <div id="pause-screen" class="ui-screen">
+                <h1 style="margin-bottom: 40px;">PAUSED</h1>
+                <button class="menu-btn" onclick="togglePause()">RESUME</button>
+                <button class="menu-btn" onclick="exitToMenu()">EXIT</button>
+            </div>
+
+            <!-- Game Over -->
+            <div id="game-over-screen" class="ui-screen">
+                <h1 id="win-text">PLAYER WINS!</h1>
+                <div id="mode-played" class="mode-played-text">PLAYED IN: NORMAL MODE</div>
+                <button class="menu-btn" onclick="startGame()">PLAY AGAIN</button>
+                <button class="menu-btn" onclick="exitToMenu()">MENU</button>
+            </div>
+        </div>
+
+        <!-- External Controls -->
+        <div id="external-hud">
+            <button class="hud-btn" onclick="togglePause()">PAUSE</button>
+            <button class="hud-btn" onclick="exitToMenu()">EXIT</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 8-BIT AUDIO SYSTEM ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        let sfxEnabled = true;
+        let bgmEnabled = true;
+
+        function initAudio() { 
+            if (!audioCtx) audioCtx = new AudioContext(); 
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playTone(freq, type, duration, vol=0.1) {
+            if (!sfxEnabled || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function paddleHitSound() { playTone(440, 'square', 0.1); }
+        function wallHitSound() { playTone(220, 'square', 0.1); }
+        function scoreSound() { 
+            playTone(880, 'square', 0.1); 
+            setTimeout(() => playTone(1108, 'square', 0.2), 100); 
+        }
+
+        // --- BACKGROUND MUSIC SEQUENCER ---
+        const melody = [261.63, 392.00, 329.63, 523.25, 392.00, 329.63, 261.63, 196.00];
+        let noteIndex = 0;
+        let nextNoteTime = 0;
+        let musicActive = false;
+
+        function scheduleMusic() {
+            if (!bgmEnabled || state !== 'PLAYING' || !musicActive || !audioCtx) return;
+            
+            while (nextNoteTime < audioCtx.currentTime + 0.1) {
+                const freq = melody[noteIndex];
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                
+                gain.gain.setValueAtTime(0.03, nextNoteTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, nextNoteTime + (0.1 / gameSpeed));
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(nextNoteTime);
+                osc.stop(nextNoteTime + (0.1 / gameSpeed));
+                
+                nextNoteTime += (0.15 / gameSpeed); 
+                noteIndex = (noteIndex + 1) % melody.length;
+            }
+            requestAnimationFrame(scheduleMusic);
+        }
+
+        function startBGM() {
+            if (!audioCtx) return;
+            musicActive = true;
+            nextNoteTime = audioCtx.currentTime + 0.1;
+            scheduleMusic();
+        }
+
+        // --- GAME LOGIC ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const speedInd = document.getElementById('speed-indicator');
+        const palette = ['#FFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#00FFFF', '#FF00FF'];
+        
+        const WINNING_SCORE = 11;
+        let state = 'MENU'; 
+        let p1Score = 0, p2Score = 0;
+        let gameSpeed = 1; 
+
+        const player = { x: 20, y: 260, w: 15, h: 80, colorIdx: 0 };
+        const ai = { x: 765, y: 260, w: 15, h: 80, colorIdx: 0, speed: 5.5 };
+        const ball = { x: 392, y: 292, size: 15, speed: 6, dx: 6, dy: 6, colorIdx: 0 };
+        
+        let trail = [];
+        let particles = [];
+
+        function updateSpeedIndicator() {
+            if ((state === 'PLAYING' || state === 'PAUSED') && gameSpeed > 1) {
+                speedInd.style.opacity = 1;
+                speedInd.innerText = gameSpeed === 4 ? ">>> FASTEST MODE <<<" : ">> FAST MODE <<";
+                speedInd.className = gameSpeed === 4 ? "speed-fastest" : "speed-fast";
+            } else {
+                speedInd.style.opacity = 0;
+                speedInd.innerText = ""; // Ensures ghost text doesn't linger
+                speedInd.className = "";
+            }
+        }
+
+        function setScreen(id) {
+            document.querySelectorAll('.ui-screen').forEach(s => s.classList.remove('active-screen'));
+            if(id) document.getElementById(id).classList.add('active-screen');
+            
+            const hud = document.getElementById('external-hud');
+            if (id === '' || id === 'pause-screen') {
+                hud.style.opacity = '1';
+                hud.style.pointerEvents = 'auto';
+            } else {
+                hud.style.opacity = '0';
+                hud.style.pointerEvents = 'none';
+            }
+            updateSpeedIndicator();
+        }
+
+        function showMenu() { 
+            state = 'MENU'; 
+            musicActive = false;
+            setScreen('menu-screen'); 
+        }
+        
+        function showOptions() { 
+            state = 'OPTIONS'; 
+            setScreen('options-screen'); 
+            initAudio(); 
+        }
+        
+        function startGame() {
+            initAudio(); 
+            state = 'PLAYING';
+            p1Score = 0; p2Score = 0;
+            player.colorIdx = 0; ai.colorIdx = 0; ball.colorIdx = 0;
+            trail = []; particles = [];
+            ai.speed = 5.5 * gameSpeed;
+            setScreen('');
+            resetBall();
+            startBGM();
+        }
+
+        function togglePause() {
+            if (state === 'PLAYING') {
+                state = 'PAUSED'; 
+                musicActive = false;
+                setScreen('pause-screen');
+            } else if (state === 'PAUSED') {
+                initAudio();
+                state = 'PLAYING'; 
+                setScreen('');
+                startBGM();
+            }
+        }
+
+        function exitToMenu() { showMenu(); }
+
+        function toggleSFX() {
+            sfxEnabled = !sfxEnabled;
+            document.getElementById('sfx-btn').innerText = `SFX: ${sfxEnabled ? 'ON' : 'OFF'}`;
+        }
+
+        function toggleBGM() {
+            bgmEnabled = !bgmEnabled;
+            document.getElementById('bgm-btn').innerText = `MUSIC: ${bgmEnabled ? 'ON' : 'OFF'}`;
+            if (bgmEnabled && state === 'PLAYING') startBGM();
+            else musicActive = false;
+        }
+
+        function toggleSpeed() {
+            if (gameSpeed === 1) {
+                gameSpeed = 2;
+                document.getElementById('speed-btn').innerText = 'SPEED: FAST';
+            } else if (gameSpeed === 2) {
+                gameSpeed = 4;
+                document.getElementById('speed-btn').innerText = 'SPEED: FASTEST';
+            } else {
+                gameSpeed = 1;
+                document.getElementById('speed-btn').innerText = 'SPEED: NORMAL';
+            }
+            ai.speed = 5.5 * gameSpeed;
+            updateSpeedIndicator(); // Update if toggled during pause state
+        }
+
+        function resetBall() {
+            ball.x = canvas.width/2 - ball.size/2;
+            ball.y = canvas.height/2 - ball.size/2;
+            ball.speed = 6 * gameSpeed;
+            ball.dx = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
+            ball.dy = (Math.random() > 0.5 ? 1 : -1) * ball.speed * 0.5;
+            trail = [];
+        }
+
+        function spawnParticles(x, y, color) {
+            for(let i=0; i<8; i++) {
+                particles.push({
+                    x: x, y: y,
+                    dx: (Math.random()-0.5)*10 * gameSpeed, dy: (Math.random()-0.5)*10 * gameSpeed,
+                    life: 1.0, color: color, size: Math.random()*8+4
+                });
+            }
+        }
+
+        // INPUT HANDLING
+        let keys = { ArrowUp: false, ArrowDown: false, w: false, s: false };
+        window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.key)) keys[e.key] = true; if(e.key.toLowerCase()==='p' && state.includes('P')) togglePause();});
+        window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+        
+        function handlePointerMove(clientY) {
+            if (state !== 'PLAYING') return;
+            let rect = canvas.getBoundingClientRect();
+            let scaleY = canvas.height / rect.height;
+            player.y = ((clientY - rect.top) * scaleY) - (player.h / 2);
+            player.y = Math.max(0, Math.min(canvas.height - player.h, player.y));
+        }
+
+        canvas.addEventListener('mousemove', e => handlePointerMove(e.clientY));
+        
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault(); 
+            handlePointerMove(e.touches[0].clientY);
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            handlePointerMove(e.touches[0].clientY);
+        }, { passive: false });
+
+        function update() {
+            if (state !== 'PLAYING') return;
+
+            // Player keyboard movement
+            if (keys.ArrowUp || keys.w) player.y -= 8 * gameSpeed;
+            if (keys.ArrowDown || keys.s) player.y += 8 * gameSpeed;
+            player.y = Math.max(0, Math.min(canvas.height - player.h, player.y));
+
+            // AI movement
+            let aiCenter = ai.y + ai.h/2;
+            if (ball.dx > 0) {
+                if (aiCenter < ball.y) ai.y += ai.speed;
+                else if (aiCenter > ball.y + ball.size) ai.y -= ai.speed;
+            }
+            ai.y = Math.max(0, Math.min(canvas.height - ai.h, ai.y));
+
+            // Trail
+            trail.push({x: ball.x, y: ball.y});
+            if(trail.length > 5) trail.shift();
+
+            // Particles
+            particles.forEach(p => { p.x += p.dx; p.y += p.dy; p.life -= 0.05 * gameSpeed; });
+            particles = particles.filter(p => p.life > 0);
+
+            // Ball movement
+            ball.x += ball.dx; ball.y += ball.dy;
+
+            // Wall bounce
+            if (ball.y <= 0 || ball.y + ball.size >= canvas.height) {
+                ball.dy *= -1; wallHitSound();
+                ball.y = ball.y <= 0 ? 0 : canvas.height - ball.size;
+            }
+
+            // Paddle logic
+            let p = ball.x < canvas.width/2 ? player : ai;
+            if (ball.x < p.x + p.w && ball.x + ball.size > p.x && ball.y < p.y + p.h && ball.y + ball.size > p.y) {
+                paddleHitSound();
+                spawnParticles(ball.x, ball.y, palette[p.colorIdx]);
+                
+                p.colorIdx = (p.colorIdx + 1) % palette.length;
+                ball.colorIdx = p.colorIdx;
+
+                let collidePoint = (ball.y + ball.size/2) - (p.y + p.h/2);
+                let angleRad = (collidePoint / (p.h/2)) * (Math.PI/3);
+                let dir = ball.x < canvas.width/2 ? 1 : -1;
+                
+                ball.speed = Math.min(ball.speed + (0.5 * gameSpeed), 20 * gameSpeed);
+                ball.dx = dir * ball.speed * Math.cos(angleRad);
+                ball.dy = ball.speed * Math.sin(angleRad);
+                
+                ball.x = dir === 1 ? p.x + p.w : p.x - ball.size;
+            }
+
+            // Score
+            if (ball.x < -50) { p2Score++; scoreSound(); checkWin(); } 
+            else if (ball.x > canvas.width + 50) { p1Score++; scoreSound(); checkWin(); }
+        }
+
+        function checkWin() {
+            if (p1Score >= WINNING_SCORE || p2Score >= WINNING_SCORE) {
+                state = 'GAME_OVER';
+                musicActive = false;
+                
+                let modeStr = gameSpeed === 4 ? "FASTEST" : (gameSpeed === 2 ? "FAST" : "NORMAL");
+                document.getElementById('win-text').innerText = p1Score >= WINNING_SCORE ? "PLAYER WINS!" : "CPU WINS!";
+                document.getElementById('mode-played').innerText = `PLAYED IN: ${modeStr} MODE`;
+                
+                setScreen('game-over-screen');
+            } else resetBall();
+        }
+
+        function drawRect(x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); }
+
+        function draw() {
+            drawRect(0, 0, canvas.width, canvas.height, '#000');
+            if (state === 'MENU' || state === 'OPTIONS') return;
+
+            // Net
+            ctx.fillStyle = '#333';
+            for (let i = 0; i < canvas.height; i += 30) ctx.fillRect(canvas.width/2 - 2, i, 4, 15);
+
+            // Colored Scores (Matching their respective paddles)
+            ctx.font = "60px 'Press Start 2P'";
+            ctx.textAlign = "left";
+            
+            ctx.fillStyle = palette[player.colorIdx];
+            ctx.fillText(p1Score, canvas.width/4, 100);
+            
+            ctx.fillStyle = palette[ai.colorIdx];
+            ctx.fillText(p2Score, 3*canvas.width/4 - 60, 100);
+
+            // Particles
+            particles.forEach(p => drawRect(p.x, p.y, p.size, p.size, p.color));
+
+            // Trail
+            trail.forEach((t, i) => drawRect(t.x + 2, t.y + 2, ball.size - 4, ball.size - 4, '#555'));
+
+            // Entities
+            ctx.textAlign = "left"; 
+            drawRect(player.x, player.y, player.w, player.h, palette[player.colorIdx]);
+            drawRect(ai.x, ai.y, ai.w, ai.h, palette[ai.colorIdx]);
+            drawRect(ball.x, ball.y, ball.size, ball.size, palette[ball.colorIdx]);
+        }
+
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        document.fonts.ready.then(loop);
+
+    </script>
+</body>
+</html>
