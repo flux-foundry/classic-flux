@@ -3,157 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flux Foundry | Game Suite</title>
+    <title>FLUX-FOUNDRY / Terminal</title>
     <style>
         :root {
-            --bg: #0a0a0b;
-            --card-bg: #141415;
-            --border: #262626;
-            --text-main: #f4f4f5;
-            --text-dim: #a1a1aa;
-            --accent: #ffffff;
+            --gh-bg: #0d1117;
+            --gh-border: #30363d;
+            --gh-text: #c9d1d9;
+            --gh-success: #238636;
+            --gh-link: #58a6ff;
+            --font-mono: 'ui-monospace', 'SFMono-Regular', 'SF Mono', Menlo, Consolas, monospace;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+            background-color: var(--gh-bg);
+            color: var(--gh-text);
+            font-family: var(--font-mono);
+            padding: 40px 20px;
             display: flex;
             justify-content: center;
-            min-height: 100vh;
-            padding: 80px 20px;
         }
 
-        .wrapper {
+        .terminal {
             width: 100%;
-            max-width: 900px;
+            max-width: 800px;
+            border: 1px solid var(--gh-border);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        header {
-            margin-bottom: 60px;
-        }
-
-        header h1 {
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-
-        header p {
-            color: var(--text-dim);
-            font-size: 14px;
-            margin-top: 8px;
-        }
-
-        .category-label {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-dim);
-            margin-bottom: 24px;
-            display: block;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 8px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-            margin-bottom: 48px;
-        }
-
-        .game-link {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            padding: 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.2s ease;
+        .terminal-header {
+            background: #161b22;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--gh-border);
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            gap: 8px;
         }
 
-        .game-link:hover {
-            border-color: #404040;
-            background: #1a1a1b;
-            transform: translateY(-2px);
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #ff5f56; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #27c93f; }
+
+        .content { padding: 30px; }
+
+        .user-path { color: var(--gh-success); font-weight: bold; margin-bottom: 20px; }
+        .user-path span { color: var(--gh-link); }
+
+        .repo-stats {
+            font-size: 14px;
+            color: #8b949e;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 20px;
         }
 
-        .game-title {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 4px;
+        .section-header {
+            color: #8b949e;
+            font-size: 12px;
+            margin-top: 30px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .game-desc {
-            font-size: 13px;
-            color: var(--text-dim);
-            line-height: 1.5;
+        .section-header::after {
+            content: "";
+            flex-grow: 1;
+            height: 1px;
+            background: var(--gh-border);
         }
 
-        .arrow {
-            margin-top: 16px;
-            font-size: 18px;
-            opacity: 0.3;
+        .game-grid { display: grid; gap: 8px; }
+
+        .game-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            text-decoration: none;
+            color: var(--gh-text);
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 14px;
             transition: 0.2s;
         }
 
-        .game-link:hover .arrow {
-            opacity: 1;
-            transform: translateX(4px);
+        .game-item:hover {
+            background: #161b22;
+            border-color: #8b949e;
+            color: var(--gh-link);
         }
+
+        .game-item::before {
+            content: "📄";
+            margin-right: 12px;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .status { margin-left: auto; font-size: 11px; opacity: 0.5; }
     </style>
 </head>
 <body>
 
-<div class="wrapper">
-    <header>
-        <h1>Flux Foundry</h1>
-        <p>A collection of high-performance web simulations.</p>
-    </header>
-
-    <span class="category-label">Single Player</span>
-    <div class="grid">
-        <a href="./singleplayer/pop-wrap/" class="game-link">
-            <div>
-                <div class="game-title">Pop Wrap</div>
-                <div class="game-desc">Strategic wrap-based puzzle mechanics.</div>
-            </div>
-            <div class="arrow">→</div>
-        </a>
-
-        <a href="./singleplayer/crystal-tetris/" class="game-link">
-            <div>
-                <div class="game-title">Crystal Tetris</div>
-                <div class="game-desc">Refined tile-matching simulation.</div>
-            </div>
-            <div class="arrow">→</div>
-        </a>
-
-        <a href="./singleplayer/pong/" class="game-link">
-            <div>
-                <div class="game-title">Classic Pong</div>
-                <div class="game-desc">Minimalist physics-based interaction.</div>
-            </div>
-            <div class="arrow">→</div>
-        </a>
+<div class="terminal">
+    <div class="terminal-header">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
     </div>
+    <div class="content">
+        <div class="user-path">flux-foundry@arcadia:~/<span>classic-flux</span>$ ls --all</div>
+        
+        <div class="repo-stats">
+            <span>⭐ 14 Stars</span>
+            <span>🍴 2 Forks</span>
+            <span>🟢 Public</span>
+        </div>
 
-    <span class="category-label">Multiplayer Systems</span>
-    <div class="grid">
-        <a href="./multiplayer_2P/cyberpong/cyberpong.html" class="game-link">
-            <div>
-                <div class="game-title">Cyber Pong</div>
-                <div class="game-desc">Two-player competitive interface.</div>
-            </div>
-            <div class="arrow">→</div>
-        </a>
+        <div class="section-header">DIRECTORY: /multiplayer_2P</div>
+        <div class="game-grid">
+            <a href="./multiplayer_2P/cyber_pong/" class="game-item">
+                cyber_pong
+                <span class="status">v1.2.0</span>
+            </a>
+            <a href="./multiplayer_2P/pixel_reaction/" class="game-item">
+                pixel_reaction
+                <span class="status">BETA</span>
+            </a>
+            <a href="./multiplayer_2P/tap_drift_duel/" class="game-item">
+                tap_drift_duel
+                <span class="status">READY</span>
+            </a>
+        </div>
+
+        <div class="section-header">DIRECTORY: /singleplayer</div>
+        <div class="game-grid">
+            <a href="./singleplayer/crystal_tetris/" class="game-item">
+                crystal_tetris
+                <span class="status">STABLE</span>
+            </a>
+            <a href="./singleplayer/Pøg/" class="game-item">
+                Pøg
+                <span class="status">LEGACY</span>
+            </a>
+            <a href="./singleplayer/pop_wrap/" class="game-item">
+                pop_wrap
+                <span class="status">READY</span>
+            </a>
+        </div>
     </div>
 </div>
 
