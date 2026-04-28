@@ -9,150 +9,155 @@
             --gh-bg: #0d1117;
             --gh-border: #30363d;
             --gh-text: #c9d1d9;
-            --gh-success: #238636;
+            --gh-success: #3fb950;
             --gh-link: #58a6ff;
-            --font-mono: 'ui-monospace', 'SFMono-Regular', 'SF Mono', Menlo, Consolas, monospace;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'ui-monospace', monospace;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background-color: var(--gh-bg);
+            background-color: #010409;
             color: var(--gh-text);
             font-family: var(--font-mono);
-            padding: 40px 20px;
+            padding: 60px 20px;
             display: flex;
             justify-content: center;
+            line-height: 1.6;
+        }
+
+        /* Scanline Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 200;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
         }
 
         .terminal {
             width: 100%;
-            max-width: 800px;
+            max-width: 850px;
+            background: var(--gh-bg);
             border: 1px solid var(--gh-border);
-            border-radius: 6px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
         }
 
         .terminal-header {
             background: #161b22;
-            padding: 12px 20px;
+            padding: 10px 15px;
             border-bottom: 1px solid var(--gh-border);
             display: flex;
-            gap: 8px;
+            align-items: center;
         }
 
+        .controls { display: flex; gap: 6px; }
         .dot { width: 12px; height: 12px; border-radius: 50%; }
-        .red { background: #ff5f56; }
-        .yellow { background: #ffbd2e; }
-        .green { background: #27c93f; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
 
-        .content { padding: 30px; }
+        .term-title { margin: 0 auto; font-size: 12px; color: #8b949e; opacity: 0.8; }
 
-        .user-path { color: var(--gh-success); font-weight: bold; margin-bottom: 20px; }
-        .user-path span { color: var(--gh-link); }
+        .content { padding: 35px; }
 
-        .repo-stats {
-            font-size: 14px;
-            color: #8b949e;
-            margin-bottom: 30px;
-            display: flex;
-            gap: 20px;
+        .prompt { color: var(--gh-success); margin-bottom: 10px; }
+        .prompt span { color: var(--gh-link); }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background: var(--gh-success);
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 5px;
         }
 
-        .section-header {
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .dir-label {
             color: #8b949e;
-            font-size: 12px;
-            margin-top: 30px;
-            margin-bottom: 10px;
+            font-size: 13px;
+            margin: 30px 0 15px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .section-header::after {
-            content: "";
-            flex-grow: 1;
-            height: 1px;
-            background: var(--gh-border);
-        }
+        .dir-label::after { content: ""; flex-grow: 1; height: 1px; background: var(--gh-border); }
 
-        .game-grid { display: grid; gap: 8px; }
+        .game-grid { display: grid; gap: 4px; }
 
         .game-item {
             display: flex;
             align-items: center;
-            padding: 10px 15px;
+            padding: 8px 12px;
             text-decoration: none;
             color: var(--gh-text);
-            border: 1px solid transparent;
             border-radius: 4px;
             font-size: 14px;
-            transition: 0.2s;
+            transition: 0.1s;
         }
 
         .game-item:hover {
-            background: #161b22;
-            border-color: #8b949e;
+            background: #1f242c;
             color: var(--gh-link);
         }
 
         .game-item::before {
-            content: "📄";
-            margin-right: 12px;
+            content: "drwxr-xr-x";
+            margin-right: 20px;
+            color: #484f58;
             font-size: 12px;
-            opacity: 0.6;
         }
 
-        .status { margin-left: auto; font-size: 11px; opacity: 0.5; }
+        .file-icon { color: #7d8590; margin-right: 10px; }
     </style>
 </head>
 <body>
 
 <div class="terminal">
     <div class="terminal-header">
-        <div class="dot red"></div>
-        <div class="dot yellow"></div>
-        <div class="dot green"></div>
+        <div class="controls">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+        </div>
+        <div class="term-title">flux-foundry — zsh — 80x24</div>
     </div>
     <div class="content">
-        <div class="user-path">flux-foundry@arcadia:~/<span>classic-flux</span>$ ls --all</div>
+        <div class="prompt">flux-foundry@gh:~/<span>classic-flux</span>$ cd games/</div>
+        <div class="prompt">flux-foundry@gh:~/games$ ls -l<span class="cursor"></span></div>
         
-        <div class="repo-stats">
-            <span>⭐ 14 Stars</span>
-            <span>🍴 2 Forks</span>
-            <span>🟢 Public</span>
-        </div>
-
-        <div class="section-header">DIRECTORY: /multiplayer_2P</div>
+        <div class="dir-label">./multiplayer_2P</div>
         <div class="game-grid">
             <a href="./multiplayer_2P/cyber_pong/" class="game-item">
-                cyber_pong
-                <span class="status">v1.2.0</span>
+                <span class="file-icon">📁</span> cyber_pong
             </a>
             <a href="./multiplayer_2P/pixel_reaction/" class="game-item">
-                pixel_reaction
-                <span class="status">BETA</span>
+                <span class="file-icon">📁</span> pixel_reaction
             </a>
             <a href="./multiplayer_2P/tap_drift_duel/" class="game-item">
-                tap_drift_duel
-                <span class="status">READY</span>
+                <span class="file-icon">📁</span> tap_drift_duel
             </a>
         </div>
 
-        <div class="section-header">DIRECTORY: /singleplayer</div>
+        <div class="dir-label">./singleplayer</div>
         <div class="game-grid">
             <a href="./singleplayer/crystal_tetris/" class="game-item">
-                crystal_tetris
-                <span class="status">STABLE</span>
+                <span class="file-icon">📁</span> crystal_tetris
             </a>
+            <!-- Fixed: Matches Pøng with an 'n' -->
             <a href="./singleplayer/Pøng/" class="game-item">
-                Pøng
-                <span class="status">LEGACY</span>
+                <span class="file-icon">📁</span> Pøng
             </a>
             <a href="./singleplayer/pop_wrap/" class="game-item">
-                pop_wrap
-                <span class="status">READY</span>
+                <span class="file-icon">📁</span> pop_wrap
             </a>
         </div>
     </div>
