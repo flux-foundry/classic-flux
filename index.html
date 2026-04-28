@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FLUX-FOUNDRY / Terminal</title>
+    <title>flux-foundry / classic-flux</title>
     <style>
         :root {
             --gh-bg: #0d1117;
@@ -11,7 +11,7 @@
             --gh-text: #c9d1d9;
             --gh-success: #3fb950;
             --gh-link: #58a6ff;
-            --font-mono: 'JetBrains Mono', 'Fira Code', 'ui-monospace', monospace;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -20,146 +20,144 @@
             background-color: #010409;
             color: var(--gh-text);
             font-family: var(--font-mono);
-            padding: 60px 20px;
+            padding: 40px 20px;
             display: flex;
             justify-content: center;
-            line-height: 1.6;
-        }
-
-        /* Scanline Effect */
-        body::before {
-            content: " ";
-            display: block;
-            position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 200;
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
         }
 
         .terminal {
             width: 100%;
-            max-width: 850px;
+            max-width: 900px;
             background: var(--gh-bg);
             border: 1px solid var(--gh-border);
             border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
         }
 
         .terminal-header {
             background: #161b22;
-            padding: 10px 15px;
+            padding: 12px 20px;
             border-bottom: 1px solid var(--gh-border);
             display: flex;
-            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-
-        .controls { display: flex; gap: 6px; }
-        .dot { width: 12px; height: 12px; border-radius: 50%; }
-        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
-
-        .term-title { margin: 0 auto; font-size: 12px; color: #8b949e; opacity: 0.8; }
 
         .content { padding: 35px; }
 
-        .prompt { color: var(--gh-success); margin-bottom: 10px; }
-        .prompt span { color: var(--gh-link); }
+        .breadcrumb { margin-bottom: 30px; font-size: 14px; color: #8b949e; }
+        .breadcrumb span { color: var(--gh-text); font-weight: bold; }
 
-        .cursor {
-            display: inline-block;
-            width: 8px;
-            height: 15px;
-            background: var(--gh-success);
-            animation: blink 1s step-end infinite;
-            vertical-align: middle;
-            margin-left: 5px;
-        }
-
-        @keyframes blink { 50% { opacity: 0; } }
-
-        .dir-label {
-            color: #8b949e;
+        .file-table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 13px;
-            margin: 30px 0 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
-        .dir-label::after { content: ""; flex-grow: 1; height: 1px; background: var(--gh-border); }
+        .table-header {
+            color: #484f58;
+            text-align: left;
+            border-bottom: 1px solid var(--gh-border);
+            padding-bottom: 12px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
 
-        .game-grid { display: grid; gap: 4px; }
-
-        .game-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            text-decoration: none;
-            color: var(--gh-text);
-            border-radius: 4px;
-            font-size: 14px;
+        .file-row {
+            border-bottom: 1px solid #21262d;
             transition: 0.1s;
         }
 
-        .game-item:hover {
-            background: #1f242c;
+        .file-row:hover { background: rgba(139, 148, 158, 0.03); }
+
+        .file-row td { padding: 14px 8px; }
+
+        .file-name {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
             color: var(--gh-link);
+            font-weight: 500;
         }
 
-        .game-item::before {
-            content: "drwxr-xr-x";
-            margin-right: 20px;
+        .file-name:hover { text-decoration: underline; }
+
+        /* Professional separator instead of folder icon */
+        .file-name::before {
+            content: "::";
+            margin-right: 12px;
             color: #484f58;
-            font-size: 12px;
+            font-weight: normal;
         }
 
-        .file-icon { color: #7d8590; margin-right: 10px; }
+        .commit-msg { color: #8b949e; font-size: 12px; }
+        .time { color: #484f58; text-align: right; width: 100px; font-size: 12px; }
+
+        .category-divider {
+            padding: 20px 8px 10px;
+            color: var(--gh-success);
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
 
 <div class="terminal">
     <div class="terminal-header">
-        <div class="controls">
-            <div class="dot red"></div>
-            <div class="dot yellow"></div>
-            <div class="dot green"></div>
-        </div>
-        <div class="term-title">flux-foundry — zsh — 80x24</div>
+        <div>branch: master</div>
+        <div>status: production_ready</div>
     </div>
     <div class="content">
-        <div class="prompt">flux-foundry@gh:~/<span>classic-flux</span>$ cd games/</div>
-        <div class="prompt">flux-foundry@gh:~/games$ ls -l<span class="cursor"></span></div>
-        
-        <div class="dir-label">./multiplayer_2P</div>
-        <div class="game-grid">
-            <a href="./multiplayer_2P/cyber_pong/" class="game-item">
-                <span class="file-icon">📁</span> cyber_pong
-            </a>
-            <a href="./multiplayer_2P/pixel_reaction/" class="game-item">
-                <span class="file-icon">📁</span> pixel_reaction
-            </a>
-            <a href="./multiplayer_2P/tap_drift_duel/" class="game-item">
-                <span class="file-icon">📁</span> tap_drift_duel
-            </a>
-        </div>
+        <div class="breadcrumb">~/<span>classic-flux</span></div>
 
-        <div class="dir-label">./singleplayer</div>
-        <div class="game-grid">
-            <a href="./singleplayer/crystal_tetris/" class="game-item">
-                <span class="file-icon">📁</span> crystal_tetris
-            </a>
-            <!-- Fixed: Matches Pøng with an 'n' -->
-            <a href="./singleplayer/Pøng/" class="game-item">
-                <span class="file-icon">📁</span> Pøng
-            </a>
-            <a href="./singleplayer/pop_wrap/" class="game-item">
-                <span class="file-icon">📁</span> pop_wrap
-            </a>
-        </div>
+        <table class="file-table">
+            <tr class="table-header">
+                <th>Entity Name</th>
+                <th>System Message</th>
+                <th class="time">Last Auth</th>
+            </tr>
+
+            <!-- Category: Multiplayer -->
+            <tr><td colspan="3" class="category-divider">// MULTIPLAYER_SYSTEMS</td></tr>
+            <tr class="file-row">
+                <td><a href="./multiplayer_2P/cyber_pong/" class="file-name">cyber_pong</a></td>
+                <td class="commit-msg">connection handshake optimized</td>
+                <td class="time">now</td>
+            </tr>
+            <tr class="file-row">
+                <td><a href="./multiplayer_2P/pixel_reaction/" class="file-name">pixel_reaction</a></td>
+                <td class="commit-msg">render loop fixed</td>
+                <td class="time">14m ago</td>
+            </tr>
+            <tr class="file-row">
+                <td><a href="./multiplayer_2P/tap_drift_duel/" class="file-name">tap_drift_duel</a></td>
+                <td class="commit-msg">syncing asset buffers</td>
+                <td class="time">2h ago</td>
+            </tr>
+
+            <!-- Category: Singleplayer -->
+            <tr><td colspan="3" class="category-divider">// SINGLEPLAYER_SIMS</td></tr>
+            <tr class="file-row">
+                <td><a href="./singleplayer/crystal_tetris/" class="file-name">crystal_tetris</a></td>
+                <td class="commit-msg">garbage collection update</td>
+                <td class="time">5h ago</td>
+            </tr>
+            <tr class="file-row">
+                <td><a href="./singleplayer/Pøng/" class="file-name">Pøng</a></td>
+                <td class="commit-msg">char_enc fixed for ø</td>
+                <td class="time">1d ago</td>
+            </tr>
+            <tr class="file-row">
+                <td><a href="./singleplayer/pop_wrap/" class="file-name">pop_wrap</a></td>
+                <td class="commit-msg">init stable build</td>
+                <td class="time">3d ago</td>
+            </tr>
+        </table>
     </div>
 </div>
 
