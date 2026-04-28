@@ -3,76 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flux Foundry | Game Portal</title>
+    <title>Flux Foundry | Game Suite</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        
+        :root {
+            --bg: #0a0a0b;
+            --card-bg: #141415;
+            --border: #262626;
+            --text-main: #f4f4f5;
+            --text-dim: #a1a1aa;
+            --accent: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
-            height: 100vh;
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
-            align-items: center;
-            color: white;
+            min-height: 100vh;
+            padding: 80px 20px;
         }
 
-        /* Glass Container */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 40px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            text-align: center;
+        .wrapper {
+            width: 100%;
+            max-width: 900px;
         }
 
-        h1 { margin-bottom: 20px; font-weight: 300; letter-spacing: 2px; }
-        h2 { font-size: 1.2rem; margin-top: 20px; margin-bottom: 10px; color: #00d2ff; text-transform: uppercase; }
+        header {
+            margin-bottom: 60px;
+        }
 
-        .game-list { list-style: none; }
+        header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
 
-        .game-card {
-            background: rgba(255, 255, 255, 0.1);
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 10px;
-            transition: 0.3s;
+        header p {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .category-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 24px;
             display: block;
-            text-decoration: none;
-            color: white;
-            border: 1px solid transparent;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
         }
 
-        .game-card:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(0, 210, 255, 0.5);
-            transform: translateY(-3px);
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .game-link {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .game-link:hover {
+            border-color: #404040;
+            background: #1a1a1b;
+            transform: translateY(-2px);
+        }
+
+        .game-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .game-desc {
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        .arrow {
+            margin-top: 16px;
+            font-size: 18px;
+            opacity: 0.3;
+            transition: 0.2s;
+        }
+
+        .game-link:hover .arrow {
+            opacity: 1;
+            transform: translateX(4px);
         }
     </style>
 </head>
 <body>
 
-    <div class="glass-panel">
+<div class="wrapper">
+    <header>
         <h1>Flux Foundry</h1>
-        
-        <h2>Singleplayer</h2>
-        <div class="game-list">
-            <a href="./singleplayer/pop-wrap/" class="game-card">Pop Wrap</a>
-            <a href="./singleplayer/crystal-tetris/" class="game-card">Crystal Tetris</a>
-            <a href="./singleplayer/pong/" class="game-card">Classic Pong</a>
-        </div>
+        <p>A collection of high-performance web simulations.</p>
+    </header>
 
-        <h2>Multiplayer</h2>
-        <div class="game-list">
-            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">Coming Soon...</p>
-            <!-- Add future games like this: -->
-            <!-- <a href="./multiplayer/game-name/" class="game-card">Game Name</a> -->
-        </div>
+    <span class="category-label">Single Player</span>
+    <div class="grid">
+        <a href="./singleplayer/pop-wrap/" class="game-link">
+            <div>
+                <div class="game-title">Pop Wrap</div>
+                <div class="game-desc">Strategic wrap-based puzzle mechanics.</div>
+            </div>
+            <div class="arrow">→</div>
+        </a>
+
+        <a href="./singleplayer/crystal-tetris/" class="game-link">
+            <div>
+                <div class="game-title">Crystal Tetris</div>
+                <div class="game-desc">Refined tile-matching simulation.</div>
+            </div>
+            <div class="arrow">→</div>
+        </a>
+
+        <a href="./singleplayer/pong/" class="game-link">
+            <div>
+                <div class="game-title">Classic Pong</div>
+                <div class="game-desc">Minimalist physics-based interaction.</div>
+            </div>
+            <div class="arrow">→</div>
+        </a>
     </div>
+
+    <span class="category-label">Multiplayer Systems</span>
+    <div class="grid">
+        <a href="./multiplayer_2P/cyberpong/cyberpong.html" class="game-link">
+            <div>
+                <div class="game-title">Cyber Pong</div>
+                <div class="game-desc">Two-player competitive interface.</div>
+            </div>
+            <div class="arrow">→</div>
+        </a>
+    </div>
+</div>
 
 </body>
 </html>
