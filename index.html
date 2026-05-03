@@ -92,7 +92,6 @@
         .game-row:hover .game-name { color: var(--emerald); }
         .game-row:hover .status-code { color: var(--text-white); }
 
-        /* SOCIAL LINK CORNER */
         .social-link {
             position: fixed;
             bottom: 20px;
@@ -116,17 +115,28 @@
             ~/projects/<span>classic-flux</span>/bin/
         </div>
 
+        <!-- FEATURED / VERCEL -->
+        <div class="category-label">sys.cloud_deployments</div>
+        <div class="terminal-box">
+            <a href="https://supergames-xi.vercel.app/" target="_blank" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">netflap</span>
+                    <span class="genre-tag">Rage</span>
+                </div>
+                <div class="status-code">VERCEL_LIVE</div>
+            </a>
+            <a href="https://moto-rush.vercel.app/" target="_blank" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">moto_rush</span>
+                    <span class="genre-tag">Arcade</span>
+                </div>
+                <div class="status-code">VERCEL_LIVE</div>
+            </a>
+        </div>
+
         <!-- MULTIPLAYER -->
         <div class="category-label">sys.multiplayer_2p</div>
         <div class="terminal-box">
-            <!-- Updated Vercel Link: Tries to find the folder if root fails -->
-            <a href="https://supergames-xi.vercel.app/" target="_blank" class="game-row">
-                <div class="name-group">
-                    <span class="game-name">netflap_coop</span>
-                    <span class="genre-tag">Co-op</span>
-                </div>
-                <div class="status-code">VERCEL_CI</div>
-            </a>
             <a href="./multiplayer_2P/cyber_pong/" class="game-row">
                 <div class="name-group">
                     <span class="game-name">cyber_pong</span>
@@ -153,6 +163,13 @@
         <!-- SINGLEPLAYER -->
         <div class="category-label">sys.singleplayer</div>
         <div class="terminal-box">
+            <a href="./singleplayer/lumberjack's_slowlife/" class="game-row">
+                <div class="name-group">
+                    <span class="game-name">lumberjacks_slowlife</span>
+                    <span class="genre-tag">Relaxing</span>
+                </div>
+                <div class="status-code">NEW_LOCAL</div>
+            </a>
             <a href="./singleplayer/crystal_tetris/" class="game-row">
                 <div class="name-group">
                     <span class="game-name">crystal_tetris</span>
@@ -160,7 +177,6 @@
                 </div>
                 <div class="status-code">AUTO_LOAD</div>
             </a>
-            <!-- FIXED TYPO: Lowercase pøng -->
             <a href="./singleplayer/pøng/" class="game-row">
                 <div class="name-group">
                     <span class="game-name">pøng</span>
