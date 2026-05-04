@@ -301,7 +301,7 @@ window.renderSlots = function(mode) {
     const list = document.getElementById('slot-list'); list.innerHTML = '';
     document.getElementById('slot-title').innerText = mode === 'save' ? "Save Game" : "Load Game";
     
-    const delSvg = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+    const delSvg = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
 
     for(let i=1; i<=3; i++) {
         const d = getSaveData(i);
@@ -1459,8 +1459,17 @@ function draw() {
         });
         
         if (player.state === 'sleeping_in_bed' && GAME.isNewGame && GAME.newGameTimer > 5) {
-            ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '12px Courier New'; ctx.textAlign = 'left';
-            ctx.fillText("Press [E] to wake up", player.x + 15, player.y + 10);
+            let pulseAlpha = 0.6 + 0.4 * Math.sin(performance.now() / 300);
+            ctx.save();
+            ctx.font = 'bold 12px Courier New';
+            ctx.textAlign = 'left';
+            ctx.shadowColor = 'rgba(0,0,0,0.9)';
+            ctx.shadowBlur = 1;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulseAlpha})`;
+            ctx.fillText("Press [E] to wake up", player.x + 35, player.y + 10);
+            ctx.restore();
         }
 
     } 
@@ -1626,13 +1635,11 @@ function draw() {
                     if(t.state === 'falling_2') ctx.rotate(fDir * Math.PI/3);
                     if(t.state === 'falling_3') ctx.rotate(fDir * Math.PI/2);
                     ctx.drawImage(SPRITES[t.type], -32, -76); ctx.restore();
-                    ctx.drawImage(SPRITES.stump, t.x, t.y); 
                 }
                 else if (t.state === 'fallen') {
                     let fDir = t.fallDir || -1;
                     ctx.save(); ctx.translate(t.x+32, t.y+76); ctx.rotate(fDir * Math.PI/2);
                     ctx.drawImage(SPRITES[t.type], -32, -76); ctx.restore();
-                    ctx.drawImage(SPRITES.stump, t.x, t.y); 
                 }
             }
             if(r.type === 'player' && player.state !== 'sitting' && player.state !== 'sleeping_in_bed') drawPlayer(player.x, player.y);
@@ -1847,6 +1854,10 @@ function draw() {
                 ctx.fillStyle = 'rgba(0,0,0,0.25)'; 
                 ctx.beginPath(); ctx.ellipse(t.x + 32 + (sX*0.8), t.y + 90, 8 * sW, 3, 0, 0, Math.PI*2); ctx.fill();
                 
+                if (t.state === 'stump' || t.state.startsWith('falling') || t.state === 'fallen') {
+                    ctx.drawImage(SPRITES.stump, t.x, t.y);
+                }
+                
                 if(t.state === 'grown') {
                     ctx.drawImage(SPRITES[t.type], t.x, t.y);
                     if(t.hits > 0) { 
@@ -1862,15 +1873,12 @@ function draw() {
                     if(t.state === 'falling_2') ctx.rotate(fDir * Math.PI/3);
                     if(t.state === 'falling_3') ctx.rotate(fDir * Math.PI/2);
                     ctx.drawImage(SPRITES[t.type], -32, -76); ctx.restore();
-                    ctx.drawImage(SPRITES.stump, t.x, t.y); 
                 }
                 else if (t.state === 'fallen') {
                     let fDir = t.fallDir || -1;
                     ctx.save(); ctx.translate(t.x+32, t.y+76); ctx.rotate(fDir * Math.PI/2);
                     ctx.drawImage(SPRITES[t.type], -32, -76); ctx.restore();
-                    ctx.drawImage(SPRITES.stump, t.x, t.y); 
                 }
-                else if (t.state === 'stump') ctx.drawImage(SPRITES.stump, t.x, t.y);
             }
             if(r.type === 'player' && player.state !== 'sitting' && player.state !== 'sleeping_in_bed') drawPlayer(player.x, player.y);
         });
