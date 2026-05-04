@@ -5,22 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lumberjack's Slow Life</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #050505; overflow: hidden; font-family: 'Courier New', Courier, monospace; }
+        * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #050505; overflow: hidden; font-family: 'Courier New', Courier, monospace; touch-action: none; }
         #outer-wrap { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
         #game-container { position: relative; width: 100%; max-height: 100vh; aspect-ratio: 16/9; max-width: calc(100vh * 16/9); background: #000; box-shadow: 0 0 30px rgba(0,0,0,0.9); transition: transform 0.3s ease; transform-origin: center; }
         #game-container.is-rotated { transform: rotate(90deg); width: 100vh !important; height: 100vw !important; max-width: none; max-height: none; }
         canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
         
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        .btn { position: absolute; background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; width: 50px; height: 50px; pointer-events: auto; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .btn:active { background: rgba(255, 255, 255, 0.4); }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; touch-action: none; }
+        .btn { position: absolute; background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; width: 50px; height: 50px; pointer-events: auto; display: flex; justify-content: center; align-items: center; color: white; cursor: pointer; transition: background 0.1s; touch-action: none; }
+        .btn:active { background: rgba(255, 255, 255, 0.35); }
+        .btn svg { width: 24px; height: 24px; stroke: white; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
         @media (min-width: 801px) { .btn { display: none; } }
         #btn-up { bottom: 130px; left: 80px; } #btn-down { bottom: 30px; left: 80px; } 
         #btn-left { bottom: 80px; left: 30px; } #btn-right { bottom: 80px; left: 130px; }
-        #btn-run { bottom: 30px; right: 120px; width: 60px; height: 60px; background: rgba(50, 100, 200, 0.3); }
-        #btn-interact { bottom: 80px; right: 30px; width: 70px; height: 70px; background: rgba(200, 50, 50, 0.4); border-width: 3px; }
+        #btn-run { bottom: 30px; right: 120px; width: 60px; height: 60px; background: rgba(100, 200, 255, 0.15); border-color: rgba(100, 200, 255, 0.4); }
+        #btn-interact { bottom: 80px; right: 30px; width: 70px; height: 70px; background: rgba(255, 100, 100, 0.15); border-color: rgba(255, 100, 100, 0.4); border-width: 3px; }
         
-        #start-screen { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; text-align: center; z-index: 10; }
+        #start-screen, #exit-modal { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; text-align: center; z-index: 10; }
+        #exit-modal { z-index: 30; background: rgba(0,0,0,0.85); display: none; pointer-events: auto; }
         #menuBg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
         
         #start-title { font-family: 'Georgia', serif; font-weight: 900; color: #FFF; text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 4px 6px rgba(0,0,0,0.8), 0px 0px 15px rgba(40,200,80,0.5); margin-bottom: 20px; z-index: 1; margin-top: 5vh; line-height: 1.1; }
@@ -31,7 +34,7 @@
         
         #settings-btn { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; background: rgba(0,0,0,0.6); border: 2px solid white; border-radius: 5px; cursor: pointer; z-index: 5; display:flex; justify-content:center; align-items:center; }
         
-        .modal-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 4px solid #D8A058; padding: 20px; color: white; text-align: center; z-index: 20; display: none; width: 320px; max-height: 90%; overflow-y: auto; font-family: inherit; box-shadow: 0 10px 40px rgba(0,0,0,0.9); }
+        .modal-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 4px solid #D8A058; padding: 20px; color: white; text-align: center; z-index: 20; display: none; width: 320px; max-height: 90%; overflow-y: auto; font-family: inherit; box-shadow: 0 10px 40px rgba(0,0,0,0.9); pointer-events: auto; }
         .setting-section { margin-bottom: 15px; border-bottom: 1px solid #555; padding-bottom: 10px; }
         .setting-section h3 { margin: 0 0 10px 0; color: #F8D088; }
         .setting-row { margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
@@ -53,6 +56,7 @@
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .back-btn { background: none; border: none; cursor: pointer; color: white; padding: 5px; display: flex; align-items: center; }
         .back-btn:hover { color: #F8D088; }
+        #pc-controls-info { font-size: 12px; color: #A8D5BA; margin-top: 10px; display: none; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -66,23 +70,23 @@
         
         <div id="options-menu" class="modal-menu">
             <div class="top-bar">
-                <button class="back-btn" onclick="closeOptions()" title="Back">
+                <button class="back-btn" onclick="closeOptions()" onmouseenter="playSound('blip')" title="Back">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
                 </button>
                 <h2 id="options-title" style="margin:0; flex-grow:1; text-align:center; padding-right:28px;">Settings</h2>
             </div>
             
             <div class="setting-section" id="save-section" style="display:none;">
-                <button class="menu-btn" style="background:#4CAF50; border-color:#81C784;" onclick="showSaveSlots()">Save Game</button>
+                <button class="menu-btn" style="background:#4CAF50; border-color:#81C784;" onmouseenter="playSound('blip')" onclick="showSaveSlots()">Save Game</button>
             </div>
 
             <div class="setting-section">
                 <h3>Display</h3>
                 <div style="display:flex; justify-content:center; align-items:center;">
-                    <button class="menu-btn small-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+                    <button class="menu-btn small-btn" onmouseenter="playSound('blip')" onclick="toggleFullscreen()" title="Toggle Fullscreen">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                     </button>
-                    <button class="menu-btn small-btn" onclick="toggleOrientation()" title="Rotate Screen">
+                    <button class="menu-btn small-btn" onmouseenter="playSound('blip')" onclick="toggleOrientation()" title="Rotate Screen">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                     </button>
                 </div>
@@ -97,17 +101,21 @@
             <div class="setting-section">
                 <h3>Controls</h3>
                 <div style="display:flex; justify-content:center;">
-                    <button class="menu-btn small-btn" style="font-size:14px;" onclick="setControls('desktop')">PC</button>
-                    <button class="menu-btn small-btn" style="font-size:14px;" onclick="setControls('mobile')">Mobile</button>
+                    <button class="menu-btn small-btn" style="font-size:14px;" onmouseenter="playSound('blip')" onclick="setControls('desktop')">PC</button>
+                    <button class="menu-btn small-btn" style="font-size:14px;" onmouseenter="playSound('blip')" onclick="setControls('mobile')">Mobile</button>
                 </div>
+                <div id="pc-controls-info"><b>WASD</b> - Move<br><b>Shift</b> - Sprint<br><b>E / Space</b> - Interact</div>
             </div>
 
-            <button id="quit-btn" class="menu-btn" style="background:#555; border-color:#888;" onclick="quitToMenu()">Main Menu</button>
+            <div style="display:flex; gap: 10px; margin-top: 15px;">
+                <button id="quit-btn" class="menu-btn" style="background:#555; border-color:#888;" onmouseenter="playSound('blip')" onclick="quitToMenu()">Menu</button>
+                <button class="menu-btn" style="background:#A03030; border-color:#FF6060;" onmouseenter="playSound('blip')" onclick="showExitPrompt()">Exit</button>
+            </div>
         </div>
 
         <div id="slot-menu" class="modal-menu">
             <div class="top-bar">
-                <button class="back-btn" onclick="closeSlotMenu()" title="Back">
+                <button class="back-btn" onclick="closeSlotMenu()" onmouseenter="playSound('blip')" title="Back">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
                 </button>
                 <h2 id="slot-title" style="margin:0; flex-grow:1; text-align:center; padding-right:28px;">Select Slot</h2>
@@ -116,9 +124,12 @@
         </div>
 
         <div id="ui-layer">
-            <div class="btn" id="btn-up">W</div><div class="btn" id="btn-down">S</div>
-            <div class="btn" id="btn-left">A</div><div class="btn" id="btn-right">D</div>
-            <div class="btn" id="btn-run">RUN</div><div class="btn" id="btn-interact">E</div>
+            <div class="btn" id="btn-up"><svg><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+            <div class="btn" id="btn-down"><svg><path d="M12 5v14M5 12l7 7 7-7"/></svg></div>
+            <div class="btn" id="btn-left"><svg><path d="M19 12H5M12 5l-7 7 7 7"/></svg></div>
+            <div class="btn" id="btn-right"><svg><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            <div class="btn" id="btn-run"><svg viewBox="0 0 24 24"><path d="M22 13V9a2 2 0 0 0-2-2h-3.4a2 2 0 0 0-1.4.6L10 12.8A1 1 0 0 1 9.3 13H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a2 2 0 0 0 2-2v-4z"/><path d="M22 13H15"/></svg></div>
+            <div class="btn" id="btn-interact"><svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.8-2l-4.2-3.8a2 2 0 0 1 2.8-2.8l2.4 2.1V11a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v0"/></svg></div>
         </div>
         
         <div id="start-screen">
@@ -129,11 +140,21 @@
                 <div class="title-sub">SLOW LIFE</div>
             </div>
             <div id="main-menu-btns">
-                <button class="menu-btn disabled" id="btn-continue" onclick="loadLatestGame()">Continue</button>
-                <button class="menu-btn" onclick="startGame(false)">New Game</button>
-                <button class="menu-btn" onclick="showLoadSlots()">Load Game</button>
-                <button class="menu-btn" onclick="openOptions(true)">Options</button>
-                <button class="menu-btn" onclick="exitGame()" style="background:#802020; border-color:#A03030;">Exit</button>
+                <button class="menu-btn disabled" id="btn-continue" onmouseenter="playSound('blip')" onclick="loadLatestGame()">Continue</button>
+                <button class="menu-btn" onmouseenter="playSound('blip')" onclick="startGame(false)">New Game</button>
+                <button class="menu-btn" onmouseenter="playSound('blip')" onclick="showLoadSlots()">Load Game</button>
+                <button class="menu-btn" onmouseenter="playSound('blip')" onclick="openOptions(true)">Options</button>
+                <button class="menu-btn" onmouseenter="playSound('blip')" onclick="showExitPrompt()" style="background:#802020; border-color:#A03030;">Exit</button>
+            </div>
+        </div>
+
+        <div id="exit-modal">
+            <div class="modal-menu" style="display:block;">
+                <h3 style="color:white; margin-bottom: 20px;">Do you want to exit?</h3>
+                <div style="display:flex; gap: 10px;">
+                    <button class="menu-btn" style="background:#A03030; border-color:#FF6060;" onmouseenter="playSound('blip')" onclick="window.close()">Yes</button>
+                    <button class="menu-btn" style="background:#555; border-color:#888;" onmouseenter="playSound('blip')" onclick="document.getElementById('exit-modal').style.display='none'">No</button>
+                </div>
             </div>
         </div>
     </div>
@@ -148,10 +169,12 @@ function applyAutoOrientation() {
         container.classList.remove('is-rotated');
     }
 }
-window.addEventListener('load', applyAutoOrientation);
+applyAutoOrientation();
+window.addEventListener('resize', applyAutoOrientation);
 
 let isMainMenu = true;
 let menuTime = 0;
+let slotMenuOrigin = 'main';
 
 function drawMenuBackground() {
     if(!isMainMenu) return;
@@ -208,8 +231,8 @@ function doSaveGame(slot) {
         scene: GAME.scene, x: player.x, y: player.y, dir: player.dir,
         day: GAME.day, timeIdx: GAME.timeIdx, tired: GAME.tired, hasAxe: player.hasAxe, isRaining: GAME.isRaining,
         axeObj: { state: axe.state, x: axe.x, y: axe.y, z: axe.z },
-        outdoorTrees: ENV.outdoor.trees.map(t => ({x: t.x, y: t.y, state: t.state, hits: t.hits, type: t.type})),
-        flowerTrees: ENV.flower_field.trees.map(t => ({x: t.x, y: t.y, state: t.state, hits: t.hits, type: t.type})),
+        outdoorTrees: ENV.outdoor.trees.map(t => ({x: t.x, y: t.y, state: t.state, hits: t.hits, type: t.type, fallDir: t.fallDir})),
+        flowerTrees: ENV.flower_field.trees.map(t => ({x: t.x, y: t.y, state: t.state, hits: t.hits, type: t.type, fallDir: t.fallDir})),
         timestamp: Date.now(), dateStr: new Date().toLocaleString()
     };
     try { 
@@ -225,7 +248,7 @@ function doLoadGame(slot) {
     if(d) {
         GAME.scene = d.scene || 'indoor';
         player.x = d.x || 200; player.y = d.y || 150; player.dir = d.dir || 'down';
-        player.state = 'idle';
+        player.state = 'idle'; GAME.isNewGame = false;
         GAME.day = d.day; GAME.timeIdx = d.timeIdx; GAME.tired = d.tired; player.hasAxe = d.hasAxe;
         GAME.isRaining = d.isRaining || false;
         if(d.axeObj) {
@@ -236,8 +259,8 @@ function doLoadGame(slot) {
         }
         
         spawnOutdoorElements(); 
-        if(d.outdoorTrees) { ENV.outdoor.trees = d.outdoorTrees; }
-        if(d.flowerTrees) { ENV.flower_field.trees = d.flowerTrees; }
+        if(d.outdoorTrees) { ENV.outdoor.trees = JSON.parse(JSON.stringify(d.outdoorTrees)); }
+        if(d.flowerTrees) { ENV.flower_field.trees = JSON.parse(JSON.stringify(d.flowerTrees)); }
         
         if(GAME.scene === 'outdoor') {
             GAME.camX = Math.max(0, Math.min(player.x - 240, SCENES.outdoor.w - 480));
@@ -287,11 +310,12 @@ window.renderSlots = function(mode) {
         let innerHTML = `<div style="flex-grow:1;">`;
         if(d) {
             innerHTML += `<div class="slot-title">Slot ${i} - Day ${d.day} (${PERIODS[d.timeIdx]})</div><div style="color:#aaa;">${d.dateStr}</div></div>`;
-            if(mode === 'load') innerHTML += `<button class="delete-btn" title="Delete Save" onclick="deleteSave(event, ${i})">${delSvg}</button>`;
+            if(mode === 'load') innerHTML += `<button class="delete-btn" title="Delete Save" onmouseenter="playSound('blip')" onclick="deleteSave(event, ${i})">${delSvg}</button>`;
+            div.onmouseenter = () => playSound('blip');
             div.onclick = () => mode === 'save' ? doSaveGame(i) : doLoadGame(i);
         } else {
             innerHTML += `<div class="slot-title">Slot ${i}</div><div style="color:#666;">Empty Slot</div></div>`;
-            if(mode === 'save') div.onclick = () => doSaveGame(i);
+            if(mode === 'save') { div.onmouseenter = () => playSound('blip'); div.onclick = () => doSaveGame(i); }
             else div.style.opacity = '0.5';
         }
         div.innerHTML = innerHTML;
@@ -304,12 +328,17 @@ window.renderSlots = function(mode) {
     document.getElementById('slot-menu').style.display = 'block';
 }
 
-window.showSaveSlots = () => renderSlots('save');
-window.showLoadSlots = () => renderSlots('load');
+window.showSaveSlots = () => { slotMenuOrigin = 'options'; renderSlots('save'); };
+window.showLoadSlots = () => { slotMenuOrigin = 'main'; renderSlots('load'); };
 window.closeSlotMenu = function() {
     playSound('menu'); document.getElementById('slot-menu').style.display = 'none';
-    if(isMainMenu) document.getElementById('main-menu-btns').style.display = 'flex';
+    if(slotMenuOrigin === 'main') document.getElementById('main-menu-btns').style.display = 'flex';
     else document.getElementById('options-menu').style.display = 'block';
+}
+
+window.showExitPrompt = function() {
+    playSound('menu');
+    document.getElementById('exit-modal').style.display = 'flex';
 }
 
 const canvas = document.getElementById('gameCanvas');
@@ -399,14 +428,20 @@ const SPRITES = {
         c.fillStyle = PAL.treeLight; c.beginPath(); c.arc(14, 12, 6, 0, Math.PI*2); c.fill();
     }),
     stump: createSprite(64, 96, c => {
-        c.fillStyle = PAL.trunk; c.fillRect(26, 76, 12, 12);
-        c.fillStyle = '#684010'; c.fillRect(28, 76, 3, 12); c.fillRect(35, 76, 2, 12);
+        c.fillStyle = PAL.trunk;
+        c.fillRect(26, 76, 12, 12); 
+        c.fillRect(24, 88, 16, 4); 
+        c.fillRect(22, 92, 20, 2);  
+        c.fillStyle = '#684010'; c.fillRect(28, 76, 3, 16); c.fillRect(35, 76, 2, 16);
         c.fillStyle = '#D8A058'; c.beginPath(); c.ellipse(32, 76, 6, 3, 0, 0, Math.PI*2); c.fill();
         c.strokeStyle = '#C89048'; c.lineWidth = 1; c.beginPath(); c.ellipse(32, 76, 4, 1.5, 0, 0, Math.PI*2); c.stroke();
     }),
     house: createSprite(140, 120, c => {
         c.fillStyle = PAL.wall; c.fillRect(10, 50, 120, 60); 
-        c.fillStyle = '#C8C8C8'; c.fillRect(10, 105, 45, 5); c.fillRect(85, 105, 45, 5); 
+        c.fillStyle = 'rgba(0,0,0,0.15)'; 
+        c.fillRect(115, 50, 15, 60); 
+        c.fillRect(10, 50, 120, 8);  
+
         c.fillStyle = PAL.roofDark; c.fillRect(0, 20, 140, 40);
         c.beginPath(); c.arc(20, 20, 20, Math.PI, Math.PI*1.5); c.arc(120, 20, 20, Math.PI*1.5, Math.PI*2); c.lineTo(140, 60); c.lineTo(0, 60); c.fill();
         c.fillStyle = PAL.roof; c.fillRect(4, 24, 132, 28);
@@ -421,10 +456,10 @@ const SPRITES = {
         c.fillStyle = '#D84038'; c.fillRect(4, 30, 40, 12); c.fillStyle = '#E8E8E8'; c.fillRect(6, 4, 36, 12);
     }),
     axeStump: createSprite(24, 24, c => {
-        c.fillStyle = PAL.trunk; c.fillRect(6, 10, 12, 12); 
-        c.fillStyle = '#684010'; c.fillRect(8, 10, 3, 12); c.fillRect(15, 10, 2, 12); 
-        c.fillStyle = '#D8A058'; c.beginPath(); c.ellipse(12, 10, 6, 3, 0, 0, Math.PI*2); c.fill(); 
-        c.strokeStyle = '#C89048'; c.lineWidth = 1; c.beginPath(); c.ellipse(12, 10, 4, 1.5, 0, 0, Math.PI*2); c.stroke(); 
+        c.fillStyle = PAL.trunk; c.fillRect(4, 10, 16, 12); 
+        c.fillStyle = '#684010'; c.fillRect(6, 10, 3, 12); c.fillRect(15, 10, 2, 12); 
+        c.fillStyle = '#D8A058'; c.beginPath(); c.ellipse(12, 10, 8, 4, 0, 0, Math.PI*2); c.fill(); 
+        c.strokeStyle = '#C89048'; c.lineWidth = 1; c.beginPath(); c.ellipse(12, 10, 5, 2, 0, 0, Math.PI*2); c.stroke(); 
     }),
     axe: createSprite(16, 20, c => {
         c.fillStyle = '#B04010'; c.fillRect(6, 2, 4, 16); 
@@ -482,7 +517,7 @@ const SPRITES = {
 };
 
 // --- STATE & AUDIO ---
-const GAME = { scene: 'outdoor', targetScene: null, tx: 0, ty: 0, tdir: 'down', targetTime: null, day: 1, timeIdx: 0, tired: false, msg: '', msgTimer: 0, fade: 0, fadeDir: 0, fadeHold: 0, isSleeping: false, camX: 0, camY: 0, paused: true, isRaining: false };
+const GAME = { scene: 'outdoor', targetScene: null, tx: 0, ty: 0, tdir: 'down', targetTime: null, day: 1, timeIdx: 0, tired: false, msg: '', msgTimer: 0, fade: 0, fadeDir: 0, fadeHold: 0, isSleeping: false, camX: 0, camY: 0, paused: true, isRaining: false, isNewGame: false, newGameTimer: 0 };
 const keys = { w: false, a: false, s: false, d: false, e: false, shift: false };
 let actionTriggered = false, audioCtx, isMusicPlaying = false;
 let volMus = 1.0, volSfx = 1.0;
@@ -499,7 +534,13 @@ const ENV = {
 };
 let trees = [], rocks = [], bushes = [], animals = [], fishes = [], pathPoints = [], coastPoints = [], puddles = [], flowers = [], petals = [], birds = [];
 
-window.setControls = function(type) { document.getElementById('ui-layer').style.display = (type === 'mobile') ? 'block' : 'none'; playSound('menu'); };
+window.addEventListener('blur', () => { Object.keys(keys).forEach(k => keys[k] = false); actionTriggered = false; });
+
+window.setControls = function(type) { 
+    document.getElementById('ui-layer').style.display = (type === 'mobile') ? 'block' : 'none'; 
+    document.getElementById('pc-controls-info').style.display = (type === 'desktop') ? 'block' : 'none'; 
+    playSound('menu'); 
+};
 window.setControls(('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 'mobile' : 'desktop');
 window.toggleFullscreen = function() { playSound('menu'); if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e => {}); else if (document.exitFullscreen) document.exitFullscreen(); };
 window.toggleOrientation = function() { playSound('menu'); document.getElementById('game-container').classList.toggle('is-rotated'); };
@@ -519,8 +560,12 @@ const bindBtn = (id, key) => {
     const btn = document.getElementById(id);
     const press = e => { e.preventDefault(); keys[key] = true; if(key==='e') interact(); };
     const release = e => { e.preventDefault(); keys[key] = false; };
-    btn.addEventListener('touchstart', press); btn.addEventListener('touchend', release);
-    btn.addEventListener('mousedown', press); btn.addEventListener('mouseup', release);
+    btn.addEventListener('touchstart', press, {passive: false}); 
+    btn.addEventListener('touchend', release, {passive: false});
+    btn.addEventListener('touchcancel', release, {passive: false});
+    btn.addEventListener('mousedown', press); 
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
 };
 bindBtn('btn-up', 'w'); bindBtn('btn-down', 's'); bindBtn('btn-left', 'a'); bindBtn('btn-right', 'd'); bindBtn('btn-run', 'shift'); bindBtn('btn-interact', 'e');
 
@@ -668,26 +713,57 @@ function playFootstep() {
     const t = audioCtx.currentTime; const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
     o.connect(g); g.connect(audioCtx.destination);
     
-    let vol = volSfx * 0.15; 
-    if(GAME.scene === 'indoor') {
-        o.type='triangle'; o.frequency.setValueAtTime(100,t); o.frequency.exponentialRampToValueAtTime(30,t+0.04);
-        g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.04);
-    } else if (GAME.scene === 'flower_field') {
-        o.type='sine'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(80,t+0.06);
-        g.gain.setValueAtTime(vol*0.8,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.06);
-    } else {
-        if (player.x > 560) { 
-            o.type='sine'; o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(40,t+0.05);
-            g.gain.setValueAtTime(vol*0.6,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.05);
-        } else if (player.x > 380 && player.x < 420) { 
-            o.type='sine'; o.frequency.setValueAtTime(80,t); o.frequency.exponentialRampToValueAtTime(20,t+0.04);
-            g.gain.setValueAtTime(vol*0.9,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.04);
-        } else { 
-            o.type='sine'; o.frequency.setValueAtTime(160,t); o.frequency.exponentialRampToValueAtTime(60,t+0.05);
-            g.gain.setValueAtTime(vol*0.7,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.05);
+    let vol = volSfx * 0.225; 
+    
+    let onPuddle = false;
+    if ((GAME.scene === 'outdoor' || GAME.scene === 'flower_field') && GAME.isRaining) {
+        for(let p of puddles) {
+            if(Math.hypot(player.x - p.x, player.y - p.y) < p.w) { onPuddle = true; break; }
         }
     }
-    o.start(t); o.stop(t+0.08);
+
+    if (onPuddle) {
+        o.type = 'sine'; o.frequency.setValueAtTime(600, t); o.frequency.exponentialRampToValueAtTime(150, t + 0.1);
+        g.gain.setValueAtTime(vol * 0.7, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+        
+        const o2 = audioCtx.createOscillator(); const g2 = audioCtx.createGain();
+        o2.type = 'triangle'; o2.frequency.setValueAtTime(1200, t); o2.frequency.exponentialRampToValueAtTime(300, t + 0.08);
+        g2.gain.setValueAtTime(vol * 0.3, t); g2.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+        o2.connect(g2); g2.connect(audioCtx.destination);
+        o2.start(t); o2.stop(t+0.1);
+        o.start(t); o.stop(t+0.1);
+        return;
+    }
+
+    if (GAME.scene === 'indoor') {
+        if (player.x > 170 && player.x < 310 && player.y > 120 && player.y < 220) {
+            o.type = 'sine'; o.frequency.setValueAtTime(80, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.05);
+            g.gain.setValueAtTime(vol * 0.6, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+            o.start(t); o.stop(t+0.05);
+        } else {
+            o.type = 'triangle'; o.frequency.setValueAtTime(100, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.04);
+            g.gain.setValueAtTime(vol * 0.7, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
+            o.start(t); o.stop(t+0.04);
+        }
+    } else if (GAME.scene === 'flower_field') {
+        o.type = 'triangle'; o.frequency.setValueAtTime(350, t); o.frequency.exponentialRampToValueAtTime(150, t + 0.05);
+        g.gain.setValueAtTime(vol * 0.6, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+        o.start(t); o.stop(t+0.05);
+    } else {
+        if (player.x > 560) { 
+            o.type = 'sine'; o.frequency.setValueAtTime(250, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.05);
+            g.gain.setValueAtTime(vol * 0.7, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+            o.start(t); o.stop(t+0.05);
+        } else if (player.x > 380 && player.x < 420) { 
+            o.type = 'sine'; o.frequency.setValueAtTime(200, t); o.frequency.exponentialRampToValueAtTime(50, t + 0.05);
+            g.gain.setValueAtTime(vol * 0.9, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+            o.start(t); o.stop(t+0.05);
+        } else { 
+            o.type = 'triangle'; o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(100, t + 0.05);
+            g.gain.setValueAtTime(vol * 0.6, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+            o.start(t); o.stop(t+0.05);
+        }
+    }
 }
 
 function playSound(type, dist = 0) {
@@ -779,7 +855,7 @@ function generateMapData(mapName) {
         if(mapName === 'outdoor' && tx > 300 && tx < 500 && ty < 170) continue; 
         if(tx > 520) continue; 
         let tType = mapName === 'flower_field' ? 'sakuraTree' : ('tree' + (Math.floor(Math.random() * 2) + 1));
-        m.trees.push({ x: tx, y: ty, state: 'grown', fallT: 0, hits: 0, type: tType });
+        m.trees.push({ x: tx, y: ty, state: 'grown', fallT: 0, hits: 0, type: tType, fallDir: 1 });
     }
     
     for(let i=0; i<60; i++) {
@@ -864,7 +940,9 @@ window.startGame = function(isContinuing = false) {
     document.getElementById('start-screen').style.display = 'none';
     startAudio(); nextNoteTime = audioCtx.currentTime + 0.1;
     GAME.fade = 1; GAME.fadeDir = -1; GAME.paused = false; GAME.isSleeping = false;
+    
     if(!isContinuing) { 
+        GAME.isNewGame = true; GAME.newGameTimer = 0;
         GAME.scene = 'indoor'; player.hasAxe = false; 
         GAME.day = 1; GAME.timeIdx = 0; GAME.tired = false; GAME.isRaining = false;
         
@@ -916,7 +994,7 @@ function interact() {
 
     if(GAME.scene === 'indoor') {
         if(player.state === 'sleeping_in_bed') {
-            player.state = 'idle'; player.x = 75; player.y = 110; player.dir = 'down'; playSound('hop'); return;
+            player.state = 'idle'; player.x = 75; player.y = 110; player.dir = 'down'; GAME.isNewGame = false; playSound('hop'); return;
         }
 
         if(player.state === 'sitting') {
@@ -972,7 +1050,7 @@ function interact() {
                     player.state = 'chopping'; player.dir = player.x < t.x + 32 ? 'right' : 'left'; player.chopTimer = 0.25;
                     t.hits = (t.hits || 0) + 1; playSound('chop');
                     if(t.hits >= 3) { 
-                        t.state = 'falling_1'; t.fallT = 0; t.hits = 0; GAME.tired = true; playSound('fall');
+                        t.state = 'falling_1'; t.fallT = 0; t.hits = 0; t.fallDir = Math.random() > 0.5 ? 1 : -1; GAME.tired = true; playSound('fall');
                         if (axe.state === 'stuck' && axe.treeObj === t) { axe.state = 'ground'; axe.treeObj = null; } 
                         if(typeof saveGame === 'function') saveGame(); 
                     }
@@ -1011,6 +1089,10 @@ let lastSplashT = 0;
 
 function update(dt) {
     if(GAME.paused && !isMainMenu) return;
+
+    if(GAME.scene === 'indoor' && player.state === 'sleeping_in_bed' && GAME.isNewGame) {
+        GAME.newGameTimer += dt;
+    }
 
     if(GAME.fadeDir !== 0 || GAME.fadeHold > 0) {
         if(GAME.fadeHold > 0) {
@@ -1113,7 +1195,7 @@ function update(dt) {
                         
                         t.hits = (t.hits || 0) + 1; playSound('chop');
                         if (t.hits >= 3) {
-                            t.state = 'falling_1'; t.fallT = 0; t.hits = 0; GAME.tired = true; playSound('fall');
+                            t.state = 'falling_1'; t.fallT = 0; t.hits = 0; t.fallDir = Math.random() > 0.5 ? 1 : -1; GAME.tired = true; playSound('fall');
                             axe.state = 'ground'; axe.treeObj = null; axe.z = 0;
                         }
                         hitTree = true; break;
@@ -1375,18 +1457,16 @@ function draw() {
                 ctx.drawImage(SPRITES[r.obj.type], r.obj.x, r.obj.y);
             }
         });
+        
+        if (player.state === 'sleeping_in_bed' && GAME.isNewGame && GAME.newGameTimer > 5) {
+            ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '12px Courier New'; ctx.textAlign = 'left';
+            ctx.fillText("Press [E] to wake up", player.x + 15, player.y + 10);
+        }
 
     } 
     else if(GAME.scene === 'flower_field') {
         ctx.fillStyle = '#5CA838'; ctx.fillRect(0, 0, SCENES.flower_field.w, SCENES.flower_field.h);
         
-        ctx.save(); ctx.globalCompositeOperation = 'screen';
-        for(let i=0; i<4; i++) {
-            ctx.fillStyle = `rgba(255, 240, 180, 0.04)`;
-            ctx.beginPath(); ctx.moveTo(-100, 0); ctx.lineTo(200 + i*150, 600); ctx.lineTo(350 + i*150, 600); ctx.fill();
-        }
-        ctx.restore();
-
         ctx.fillStyle = '#489028'; 
         for(let i=10; i<SCENES.flower_field.w; i+=30) for(let j=10; j<SCENES.flower_field.h; j+=30) { 
             ctx.fillRect(i,j,4,4); ctx.fillRect(i+4,j-4,4,4); 
@@ -1492,6 +1572,11 @@ function draw() {
         animals.forEach(a => renders.push({ type: a.type, obj: a, y: a.y+8 }));
         renders.sort((a,b) => a.y - b.y);
 
+        let sX = 0, sW = 1;
+        if(GAME.timeIdx === 0) { sX = 6; sW = 1.3; }
+        else if(GAME.timeIdx === 2) { sX = -6; sW = 1.3; }
+        else if(GAME.timeIdx === 3) { sX = 0; sW = 0.8; }
+
         renders.forEach(r => {
             if(r.type === 'bird') { 
                 ctx.save(); ctx.translate(r.obj.x, r.obj.y); if(r.obj.vx < 0) ctx.scale(-1, 1);
@@ -1519,7 +1604,13 @@ function draw() {
             }
             if(r.type === 'tree') {
                 const t = r.obj;
-                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(t.x + 32, t.y + 87, 7, 2, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(0,0,0,0.25)'; 
+                ctx.beginPath(); ctx.ellipse(t.x + 32 + (sX*0.8), t.y + 90, 8 * sW, 3, 0, 0, Math.PI*2); ctx.fill();
+                
+                if (t.state === 'stump' || t.state.startsWith('falling') || t.state === 'fallen') {
+                    ctx.drawImage(SPRITES.stump, t.x, t.y);
+                }
+                
                 if(t.state === 'grown') {
                     ctx.drawImage(SPRITES[t.type], t.x, t.y);
                     if(t.hits > 0) { 
@@ -1529,21 +1620,22 @@ function draw() {
                     }
                 }
                 else if (t.state.startsWith('falling')) {
+                    let fDir = t.fallDir || -1;
                     ctx.save(); ctx.translate(t.x+32, t.y+76); 
-                    if(t.state === 'falling_1') ctx.rotate(-Math.PI/6);
-                    if(t.state === 'falling_2') ctx.rotate(-Math.PI/3);
-                    if(t.state === 'falling_3') ctx.rotate(-Math.PI/2);
+                    if(t.state === 'falling_1') ctx.rotate(fDir * Math.PI/6);
+                    if(t.state === 'falling_2') ctx.rotate(fDir * Math.PI/3);
+                    if(t.state === 'falling_3') ctx.rotate(fDir * Math.PI/2);
                     ctx.drawImage(SPRITES[t.type], -32, -76); ctx.restore();
                     ctx.drawImage(SPRITES.stump, t.x, t.y); 
                 }
                 else if (t.state === 'fallen') {
-                    ctx.save(); ctx.translate(t.x+32, t.y+76); ctx.rotate(-Math.PI/2);
+                    let fDir = t.fallDir || -1;
+                    ctx.save(); ctx.translate(t.x+32, t.y+76); ctx.rotate(fDir * Math.PI/2);
                     ctx.drawImage(SPRITES[t.type], -32, -76); ctx.restore();
                     ctx.drawImage(SPRITES.stump, t.x, t.y); 
                 }
-                else if (t.state === 'stump') ctx.drawImage(SPRITES.stump, t.x, t.y);
             }
-            if(r.type === 'player') drawPlayer(player.x, player.y);
+            if(r.type === 'player' && player.state !== 'sitting' && player.state !== 'sleeping_in_bed') drawPlayer(player.x, player.y);
         });
 
         petals.forEach(p => {
@@ -1571,6 +1663,41 @@ function draw() {
             if(GAME.timeIdx === 1) { ctx.fillStyle = 'rgba(255, 200, 100, 0.15)'; ctx.fillRect(0,0,800,600); }
             else if(GAME.timeIdx === 2) { ctx.fillStyle = 'rgba(200, 80, 0, 0.35)'; ctx.fillRect(0,0,800,600); }
             else if(GAME.timeIdx === 3) { ctx.fillStyle = 'rgba(0, 10, 60, 0.65)'; ctx.fillRect(0,0,800,600); }
+        }
+        
+        // Render Sun Rays for the flower map
+        if (GAME.timeIdx !== 3 && !GAME.isRaining) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            const rayTime = performance.now() / 3000;
+            let grad = ctx.createLinearGradient(0, 0, 800, 600);
+            if(GAME.timeIdx === 2) {
+                grad.addColorStop(0, 'rgba(255, 120, 50, 0.12)');
+                grad.addColorStop(1, 'rgba(255, 120, 50, 0)');
+            } else {
+                grad.addColorStop(0, 'rgba(255, 240, 180, 0.12)');
+                grad.addColorStop(1, 'rgba(255, 240, 180, 0)');
+            }
+            ctx.fillStyle = grad;
+            for(let i=0; i<5; i++) {
+                ctx.beginPath();
+                let sway = Math.sin(rayTime + i) * 50;
+                if(GAME.timeIdx === 0) { 
+                    let startX = i * 200 - 100 + sway;
+                    ctx.moveTo(startX, -50); ctx.lineTo(startX + 150, -50);
+                    ctx.lineTo(startX + 600, 650); ctx.lineTo(startX + 450, 650);
+                } else if (GAME.timeIdx === 2) { 
+                    let startX = 800 - (i * 200 - 100) + sway;
+                    ctx.moveTo(startX, -50); ctx.lineTo(startX - 150, -50);
+                    ctx.lineTo(startX - 600, 650); ctx.lineTo(startX - 450, 650);
+                } else { 
+                    let startX = i * 200 - 100 + sway;
+                    ctx.moveTo(startX, -50); ctx.lineTo(startX + 150, -50);
+                    ctx.lineTo(startX + 100, 650); ctx.lineTo(startX - 50, 650);
+                }
+                ctx.fill();
+            }
+            ctx.restore();
         }
     }
     else if(GAME.scene === 'outdoor') {
@@ -1666,6 +1793,11 @@ function draw() {
         animals.forEach(a => renders.push({ type: a.type, obj: a, y: a.y+8 }));
         renders.sort((a,b) => a.y - b.y);
 
+        let sX = 0, sW = 1;
+        if(GAME.timeIdx === 0) { sX = 6; sW = 1.3; }
+        else if(GAME.timeIdx === 2) { sX = -6; sW = 1.3; }
+        else if(GAME.timeIdx === 3) { sX = 0; sW = 0.8; }
+
         renders.forEach(r => {
             if(r.type === 'bird') { 
                 ctx.save(); ctx.translate(r.obj.x, r.obj.y); if(r.obj.vx < 0) ctx.scale(-1, 1);
@@ -1680,11 +1812,17 @@ function draw() {
             if(r.type === 'rabbit') { ctx.drawImage(SPRITES[r.obj.c], r.obj.x, r.obj.y - (r.obj.timer>0 ? 4 : 0)); }
             if(r.type === 'bush') { ctx.drawImage(SPRITES.bush, r.obj.x - 16, r.obj.y - 16); }
             if(r.type === 'house') {
+                ctx.fillStyle = 'rgba(0,0,0,0.15)'; 
+                let shx = 400, shy = 146, shw = 74, shh = 8;
+                if(GAME.timeIdx === 0) { shx = 412; shw = 82; } 
+                if(GAME.timeIdx === 2) { shx = 388; shw = 82; } 
+                if(GAME.timeIdx === 3) { shw = 65; }
+                ctx.beginPath(); ctx.ellipse(shx, shy, shw, shh, 0, 0, Math.PI*2); ctx.fill();
                 ctx.drawImage(SPRITES.house, 330, 40);
             }
             if(r.type === 'axeStump') {
                 const ast = SCENES.outdoor.axeStump;
-                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(ast.x + 12, ast.y + 21, 7, 2, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(ast.x + 12 + (sX*0.6), ast.y + 21, 6 * sW, 2, 0, 0, Math.PI*2); ctx.fill();
                 ctx.drawImage(SPRITES.axeStump, ast.x, ast.y);
                 if(axe.state === 'stump') {
                     ctx.save(); ctx.translate(ast.x+12, ast.y+2); ctx.rotate(Math.PI/2.2); 
@@ -1706,7 +1844,9 @@ function draw() {
             }
             if(r.type === 'tree') {
                 const t = r.obj;
-                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(t.x + 32, t.y + 87, 7, 2, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(0,0,0,0.25)'; 
+                ctx.beginPath(); ctx.ellipse(t.x + 32 + (sX*0.8), t.y + 90, 8 * sW, 3, 0, 0, Math.PI*2); ctx.fill();
+                
                 if(t.state === 'grown') {
                     ctx.drawImage(SPRITES[t.type], t.x, t.y);
                     if(t.hits > 0) { 
@@ -1716,15 +1856,17 @@ function draw() {
                     }
                 }
                 else if (t.state.startsWith('falling')) {
+                    let fDir = t.fallDir || -1;
                     ctx.save(); ctx.translate(t.x+32, t.y+76); 
-                    if(t.state === 'falling_1') ctx.rotate(-Math.PI/6);
-                    if(t.state === 'falling_2') ctx.rotate(-Math.PI/3);
-                    if(t.state === 'falling_3') ctx.rotate(-Math.PI/2);
+                    if(t.state === 'falling_1') ctx.rotate(fDir * Math.PI/6);
+                    if(t.state === 'falling_2') ctx.rotate(fDir * Math.PI/3);
+                    if(t.state === 'falling_3') ctx.rotate(fDir * Math.PI/2);
                     ctx.drawImage(SPRITES[t.type], -32, -76); ctx.restore();
                     ctx.drawImage(SPRITES.stump, t.x, t.y); 
                 }
                 else if (t.state === 'fallen') {
-                    ctx.save(); ctx.translate(t.x+32, t.y+76); ctx.rotate(-Math.PI/2);
+                    let fDir = t.fallDir || -1;
+                    ctx.save(); ctx.translate(t.x+32, t.y+76); ctx.rotate(fDir * Math.PI/2);
                     ctx.drawImage(SPRITES[t.type], -32, -76); ctx.restore();
                     ctx.drawImage(SPRITES.stump, t.x, t.y); 
                 }
@@ -1756,6 +1898,41 @@ function draw() {
                 ctx.fillStyle = 'rgba(0, 10, 60, 0.65)'; ctx.fillRect(0,0,SCENES.outdoor.w,SCENES.outdoor.h); 
                 ctx.fillStyle = 'rgba(255,255,100,0.5)'; ctx.fillRect(350, 105, 20, 25); ctx.fillRect(430, 105, 20, 25); 
             }
+        }
+        
+        // Render Sun Rays for the outdoor map
+        if (GAME.timeIdx !== 3 && !GAME.isRaining) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            const rayTime = performance.now() / 3000;
+            let grad = ctx.createLinearGradient(0, 0, 800, 600);
+            if(GAME.timeIdx === 2) {
+                grad.addColorStop(0, 'rgba(255, 120, 50, 0.12)');
+                grad.addColorStop(1, 'rgba(255, 120, 50, 0)');
+            } else {
+                grad.addColorStop(0, 'rgba(255, 240, 180, 0.12)');
+                grad.addColorStop(1, 'rgba(255, 240, 180, 0)');
+            }
+            ctx.fillStyle = grad;
+            for(let i=0; i<5; i++) {
+                ctx.beginPath();
+                let sway = Math.sin(rayTime + i) * 50;
+                if(GAME.timeIdx === 0) { 
+                    let startX = i * 200 - 100 + sway;
+                    ctx.moveTo(startX, -50); ctx.lineTo(startX + 150, -50);
+                    ctx.lineTo(startX + 600, 650); ctx.lineTo(startX + 450, 650);
+                } else if (GAME.timeIdx === 2) { 
+                    let startX = 800 - (i * 200 - 100) + sway;
+                    ctx.moveTo(startX, -50); ctx.lineTo(startX - 150, -50);
+                    ctx.lineTo(startX - 600, 650); ctx.lineTo(startX - 450, 650);
+                } else { 
+                    let startX = i * 200 - 100 + sway;
+                    ctx.moveTo(startX, -50); ctx.lineTo(startX + 150, -50);
+                    ctx.lineTo(startX + 100, 650); ctx.lineTo(startX - 50, 650);
+                }
+                ctx.fill();
+            }
+            ctx.restore();
         }
     }
 
